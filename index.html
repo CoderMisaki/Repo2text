@@ -109,8 +109,8 @@
             padding: 16px 20px; background: #161b22; border-bottom: 1px solid #30363d;
         }
         .editor-title { color: #fff; display: flex; align-items: center; gap: 8px; font-weight: 600; }
-        .editor-actions { display: flex; gap: 10px; width: 100%; }
-        .editor-actions .btn { flex: 1; padding: 12px; font-size: 0.9rem; }
+        .editor-actions { display: flex; flex-wrap: wrap; gap: 10px; width: 100%; }
+        .editor-actions .btn { flex: 1 1 150px; padding: 12px; font-size: 0.9rem; }
 
         /* AREA TEKS NATIVE MENGGUNAKAN PRE (Sangat smooth) */
         .content-container {
@@ -267,6 +267,10 @@
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
                         Simpan .txt
                     </button>
+                    <button class="btn btn-secondary" onclick="copyAllText()">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="8" y="8" width="12" height="12" rx="2" ry="2"></rect><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"></path></svg>
+                        Salin Semua
+                    </button>
                     <!-- Tombol Smart Copy (Kode Murni) -->
                     <button class="btn" id="copyBtn" onclick="smartCopy()" style="background: #10b981;">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
@@ -277,7 +281,7 @@
             
             <div class="content-container">
                 <!-- Area Teks Native (Bukan textarea) -->
-                <div class="code-scroll-area" id="scrollArea">
+                <div class="code-scroll-area" id="scrollArea" tabindex="0" role="textbox" aria-readonly="true" aria-label="Hasil kode ekstraksi">
                     <pre id="resultText">Hasil kode akan muncul di sini...</pre>
                 </div>
                 
@@ -328,6 +332,7 @@
 
         const EXCLUDED_DIRS = ['.git/'];
         let rawCodeOnly = "";
+        let fullOutputText = "";
 
         // ----- LOGIKA CUSTOM SLIDER (DRAG UNTUK SCROLL) -----
         const scrollArea = document.getElementById('scrollArea');
@@ -336,6 +341,28 @@
         
         let isDragging = false;
         let startY, startScrollTop;
+
+        function selectResultText() {
+            const range = document.createRange();
+            const resultText = document.getElementById('resultText');
+            range.selectNodeContents(resultText);
+
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+            scrollArea.focus({ preventScroll: true });
+        }
+
+        scrollArea.addEventListener('pointerdown', () => {
+            scrollArea.focus({ preventScroll: true });
+        });
+
+        scrollArea.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'a') {
+                e.preventDefault();
+                selectResultText();
+            }
+        });
 
         scrollArea.addEventListener('scroll', () => {
             if (isDragging) return;
@@ -476,7 +503,8 @@
             
             document.getElementById('progressBar').style.width = '0%';
             document.getElementById('progressPercent').textContent = '0%';
-            rawCodeOnly = ""; 
+            rawCodeOnly = "";
+            fullOutputText = "";
             
             scrollThumb.style.transform = `translateY(0px)`;
             scrollArea.scrollTop = 0;
@@ -550,6 +578,7 @@
                 finalDisplay += displayArray.join('');
 
                 rawCodeOnly = rawArray.join('');
+                fullOutputText = finalDisplay;
 
                 document.getElementById('resultText').textContent = finalDisplay;
                 
@@ -572,6 +601,34 @@
             }
         }
 
+        function copyToClipboard(text, successMessage) {
+            const fallbackCopy = () => {
+                const tempTa = document.createElement("textarea");
+                tempTa.value = text;
+                tempTa.style.position = "fixed";
+                tempTa.style.opacity = "0";
+                document.body.appendChild(tempTa);
+                tempTa.select();
+                document.execCommand('copy');
+                document.body.removeChild(tempTa);
+                showToast(successMessage);
+            };
+
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(text)
+                    .then(() => showToast(successMessage))
+                    .catch(fallbackCopy);
+            } else {
+                fallbackCopy();
+            }
+        }
+
+        // FITUR SALIN SEMUA (termasuk header, daftar isi, dan path file)
+        function copyAllText() {
+            if (!fullOutputText) return;
+            copyToClipboard(fullOutputText, 'Semua teks di kotak kode tersalin!');
+        }
+
         // FITUR SMART COPY (DENGAN RAM PROTECTOR)
         function smartCopy() {
             if (!rawCodeOnly) return;
@@ -584,24 +641,7 @@
                 return;
             }
 
-            try {
-                document.execCommand('copy');
-                executeFallbackCopy();
-            } catch (err) {
-                executeFallbackCopy();
-            }
-        }
-
-        function executeFallbackCopy() {
-            const tempTa = document.createElement("textarea");
-            tempTa.value = rawCodeOnly;
-            tempTa.style.position = "fixed";
-            tempTa.style.opacity = "0";
-            document.body.appendChild(tempTa);
-            tempTa.select();
-            document.execCommand('copy');
-            document.body.removeChild(tempTa);
-            showToast('Hanya Kode Murni yang Tersalin!');
+            copyToClipboard(rawCodeOnly, 'Hanya Kode Murni yang Tersalin!');
         }
 
         // FITUR DOWNLOAD (Aman untuk ukuran berapapun)
