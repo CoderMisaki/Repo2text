@@ -583,8 +583,11 @@
             });
         }
 
-        // Initialize history on load
-        document.addEventListener('DOMContentLoaded', renderHistory);
+        // Initialize history & theme on load
+        document.addEventListener('DOMContentLoaded', () => {
+            initTheme();
+            renderHistory();
+        });
 
         function isIncluded(path) {
             const p = path.toLowerCase();
@@ -605,6 +608,75 @@
             return "// ❌ Gagal mengunduh file ini karena masalah server.";
         }
 
+        function updateProgress(percent, title, sub) {
+            document.getElementById('progressPercent').textContent = `${Math.min(100, Math.max(0, percent))}%`;
+            document.getElementById('progressBar').style.width = `${Math.min(100, Math.max(0, percent))}%`;
+            if (title) document.getElementById('statusTitle').textContent = title;
+            if (sub) document.getElementById('statusText').textContent = sub;
+        }
+
+        async function copyToClipboard(text, successMsg) {
+            try {
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    await navigator.clipboard.writeText(text);
+                    showToast(successMsg || 'Disalin ke clipboard!');
+                } else {
+                    const textarea = document.createElement('textarea');
+                    textarea.value = text;
+                    textarea.style.position = 'fixed';
+                    textarea.style.opacity = '0';
+                    document.body.appendChild(textarea);
+                    textarea.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(textarea);
+                    showToast(successMsg || 'Disalin ke clipboard!');
+                }
+            } catch (err) {
+                showToast('Gagal menyalin teks.');
+            }
+        }
+
+        function downloadText() {
+            if (!fullOutputText) {
+                showToast('Tidak ada kode untuk diunduh.');
+                return;
+            }
+            const blob = new Blob([fullOutputText], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'extracted_repository.txt';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showToast('File .txt berhasil disimpan!');
+        }
+
+        function copyAllText() {
+            if (!fullOutputText) {
+                showToast('Tidak ada teks untuk disalin.');
+                return;
+            }
+            if (fullOutputText.length > 300000) {
+                showModal();
+                return;
+            }
+            copyToClipboard(fullOutputText, 'Seluruh teks berhasil disalin!');
+        }
+
+        function smartCopy() {
+            if (!rawCodeOnly) {
+                showToast('Tidak ada kode untuk disalin.');
+                return;
+            }
+            if (rawCodeOnly.length > 300000) {
+                showModal();
+                return;
+            }
+            copyToClipboard(rawCodeOnly, 'Kode saja berhasil disalin!');
+        }
+
         async function startFetch() {
             const urlInput = document.getElementById('repoUrl').value;
             const parsed = parseUrl(urlInput);
@@ -613,6 +685,8 @@
                 alert('Tolong masukkan link GitHub atau Codeberg yang valid.');
                 return;
             }
+
+            saveToHistory(urlInput);
 
             const btn = document.getElementById('fetchBtn');
             const statusContainer = document.getElementById('statusContainer');
@@ -623,8 +697,111 @@
             
             outputContainer.style.display = 'none';
             statusContainer.style.display = 'block';
-            
-            document.getElementById('progressBar').style.width = '0%';
+            updateProgress(10, 'Menghubungkan...', 'Mencari repositori');
+
+            try {
+                let fileList = [];
+                let branch = parsed.branch;
+
+                if (parsed.platform === 'github') {
+                    if (!branch) {
+                        try {
+                            const repoInfoRes = await fetch(`https://api.github.com/repos/${parsed.owner}/${parsed.repo}`);
+                            if (repoInfoRes.ok) {
+                                const repoInfo = await repoInfoRes.json();
+                                branch = repoInfo.default_branch || 'main';
+                            } else {
+                                branch = 'main';
+                            }
+                        } catch (e) {
+                            branch = 'main';
+                        }
+                    }
+
+                    updateProgress(30, 'Mengunduh Struktur...', `Memuat daftar file branch ${branch}`);
+                    const treeRes = await fetch(`https://api.github.com/repos/${parsed.owner}/${parsed.repo}/git/trees/${branch}?recursive=1`);
+                    
+                    if (!treeRes.ok) throw new Error('Gagal mengambil struktur repositori dari GitHub API.');
+                    const treeData = await treeRes.json();
+                    
+                    if (treeData.truncated) {
+                        showToast('Repositori sangat besar, beberapa file mungkin terlewat.');
+                    }
+
+                    fileList = treeData.tree
+                        .filter(item => item.type === 'blob' && isIncluded(item.path))
+                        .map(item => ({
+                            path: item.path,
+                            rawUrl: `https://raw.githubusercontent.com/${parsed.owner}/${parsed.repo}/${branch}/${item.path}`
+                        }));
+
+                } else if (parsed.platform === 'codeberg') {
+                    if (!branch) branch = 'main';
+                    updateProgress(30, 'Mengunduh Struktur...', `Memuat daftar file Codeberg`);
+                    const treeRes = await fetch(`https://codeberg.org/api/v1/repos/${parsed.owner}/${parsed.repo}/git/trees/${branch}?recursive=1`);
+                    if (!treeRes.ok) throw new Error('Gagal mengambil struktur repositori Codeberg.');
+                    const treeData = await treeRes.json();
+
+                    fileList = treeData.tree
+                        .filter(item => item.type === 'blob' && isIncluded(item.path))
+                        .map(item => ({
+                            path: item.path,
+                            rawUrl: `https://codeberg.org/${parsed.owner}/${parsed.repo}/raw/branch/${branch}/${item.path}`
+                        }));
+                }
+
+                if (fileList.length === 0) {
+                    throw new Error('Tidak ada file teks atau kode yang dapat diekstrak.');
+                }
+
+                updateProgress(50, 'Mengekstrak File...', `0 / ${fileList.length} file diunduh`);
+
+                let fullText = `=== EXPORTED REPOSITORY: ${parsed.owner}/${parsed.repo} (${branch}) ===\n`;
+                fullText += `=== TOTAL FILES: ${fileList.length} ===\n\n`;
+                let rawCode = "";
+
+                let completed = 0;
+                for (let file of fileList) {
+                    const content = await fetchWithProxy(file.rawUrl);
+                    fullText += `========================================\n`;
+                    fullText += `FILE: ${file.path}\n`;
+                    fullText += `========================================\n`;
+                    fullText += content + `\n\n`;
+                    
+                    rawCode += `// --- File: ${file.path} ---\n` + content + `\n\n`;
+                    
+                    completed++;
+                    const percent = 50 + Math.floor((completed / fileList.length) * 45);
+                    updateProgress(percent, 'Mengekstrak File...', `${completed} / ${fileList.length} file diunduh`);
+                }
+
+                fullOutputText = fullText;
+                rawCodeOnly = rawCode;
+
+                document.getElementById('fileCountBadge').textContent = fileList.length;
+                document.getElementById('resultText').textContent = fullText;
+                
+                const lines = fullText.split('\n').length;
+                const sizeKB = (new Blob([fullText]).size / 1024).toFixed(1);
+                
+                document.getElementById('lineCount').textContent = `${lines.toLocaleString()} baris`;
+                document.getElementById('sizeCount').textContent = `${sizeKB} KB`;
+
+                updateProgress(100, 'Selesai!', 'Ekstraksi berhasil');
+                setTimeout(() => {
+                    statusContainer.style.display = 'none';
+                    outputContainer.style.display = 'block';
+                    showToast('Kode berhasil diekstrak!');
+                }, 500);
+
+            } catch (err) {
+                alert(err.message || 'Terjadi kesalahan saat memproses repositori.');
+                statusContainer.style.display = 'none';
+            } finally {
+                btn.disabled = false;
+                document.getElementById('btnText').textContent = 'Ekstrak Kode';
+            }
+        }'progressBar').style.width = '0%';
             document.getElementById('progressPercent').textContent = '0%';
             rawCodeOnly = "";
             fullOutputText = "";
