@@ -7,18 +7,20 @@
     <style>
         /* --- CSS NATIVE UNIVERSAL --- */
         :root {
-            --primary: #4f46e5;
-            --primary-hover: #4338ca;
-            --bg-body: #f8fafc;
-            --bg-card: #ffffff;
-            --text-main: #0f172a;
-            --text-muted: #64748b;
-            --border: #e2e8f0;
-            --editor-bg: #0d1117;
-            --editor-text: #c9d1d9;
+            /* Monokrom Mewah Palette */
+            --primary: #36363c; /* Deep Charcoal Blue-Gray (subtle accent) */
+            --primary-hover: #2a2a30; /* Darker primary for hover */
+            --bg-body: #121212; /* Very dark gray, almost black */
+            --bg-card: #1a1a1a; /* Slightly lighter dark gray for cards */
+            --text-main: #e0e0e0; /* Light gray for main text */
+            --text-muted: #a0a0a0; /* Medium gray for muted text */
+            --border: #333333; /* Dark gray for borders */
+            --editor-bg: #161616; /* Almost black for code editor background */
+            --editor-text: #e0e0e0; /* Light gray for editor text */
             --radius-lg: 16px;
             --radius-md: 12px;
-            --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
+            /* Adjusted shadow for dark backgrounds for a richer, luxurious feel */
+            --shadow: 0 8px 25px rgba(0, 0, 0, 0.5), 0 4px 10px rgba(0, 0, 0, 0.3);
         }
 
         * {
@@ -38,7 +40,8 @@
 
         .bg-decor {
             position: fixed; top: 0; left: 0; width: 100%; height: 300px;
-            background: linear-gradient(135deg, #e0e7ff 0%, #ede9fe 100%);
+            /* Subtle dark gradient for luxury feel */
+            background: linear-gradient(135deg, #181818 0%, #0d0d0d 100%);
             z-index: -1;
             border-bottom-left-radius: 40px;
             border-bottom-right-radius: 40px;
@@ -53,8 +56,15 @@
         }
 
         .header { text-align: center; margin-bottom: 10px; }
-        .header h1 { font-size: 2.2rem; font-weight: 800; color: #1e293b; margin-bottom: 8px; }
-        .header h1 span { color: var(--primary); }
+        .header h1 {
+            font-size: 2.2rem;
+            font-weight: 800;
+            color: var(--text-main); /* Align with new main text color */
+            margin-bottom: 8px;
+        }
+        .header h1 span {
+            color: white; /* Stronger accent for "Pro" in a dark theme */
+        }
 
         .card {
             background: var(--bg-card);
@@ -69,19 +79,31 @@
         .input-wrapper { position: relative; flex: 1; }
         .input-wrapper svg {
             position: absolute; left: 16px; top: 50%; transform: translateY(-50%);
-            color: #94a3b8; width: 20px; height: 20px;
+            color: var(--text-muted); /* Use muted text color for icons */
+            width: 20px; height: 20px;
         }
 
         input[type="text"] {
             width: 100%; padding: 16px 16px 16px 44px; font-size: 1rem;
             border: 2px solid var(--border); border-radius: var(--radius-md);
-            outline: none; transition: border-color 0.2s; background: #f8fafc;
+            outline: none; transition: border-color 0.2s;
+            background: var(--bg-card); /* Consistent input background with cards */
+            color: var(--text-main); /* Ensure input text is visible on dark background */
         }
-        input[type="text"]:focus { border-color: var(--primary); background: #fff; }
+        input[type="text"]:focus {
+            border-color: var(--text-main); /* Brighter border on focus for clear indication */
+            background: var(--bg-card); /* Keep background consistent */
+        }
+        /* Placeholder styling for dark theme for better visibility */
+        input[type="text"]::placeholder {
+            color: var(--text-muted);
+            opacity: 0.7; /* Slightly transparent */
+        }
 
         .btn {
             display: inline-flex; justify-content: center; align-items: center; gap: 8px;
-            background: var(--primary); color: #fff;
+            background: var(--primary); /* Use new primary accent color */
+            color: white; /* High contrast white text for primary buttons */
             border: none; border-radius: var(--radius-md);
             padding: 16px 24px; font-size: 1rem; font-weight: 600;
             cursor: pointer; transition: background 0.2s, transform 0.1s;
@@ -91,699 +113,226 @@
         .btn:active { transform: scale(0.98); }
         .btn:disabled { opacity: 0.7; cursor: not-allowed; }
 
-        .btn-secondary { background: #f1f5f9; color: #334155; }
-        .btn-secondary:hover { background: #e2e8f0; }
+        .btn-secondary {
+            background: var(--border); /* Use border color for secondary button background */
+            color: var(--text-main); /* Light text on secondary button */
+        }
+        .btn-secondary:hover { background: var(--text-muted); } /* Darker gray on hover for secondary */
 
         .progress-area { display: none; }
         .progress-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
         .progress-title { font-weight: 600; font-size: 1.1rem; }
         .progress-sub { color: var(--text-muted); font-size: 0.9rem; margin-top: 4px; }
-        .progress-track { background: #e2e8f0; height: 12px; border-radius: 10px; overflow: hidden; }
-        .progress-bar { background: linear-gradient(90deg, #3b82f6, #6366f1); height: 100%; width: 0%; transition: width 0.3s ease; }
+        .progress-track { background: var(--border); height: 12px; border-radius: 10px; overflow: hidden; } /* Use border color for track */
+        .progress-bar {
+            /* Monochrome gradient for progress bar to fit the theme */
+            background: linear-gradient(90deg, #777777, #eeeeee);
+            height: 100%; width: 0%; transition: width 0.3s ease;
+        }
         .spinner { animation: spin 1s linear infinite; }
         @keyframes spin { 100% { transform: rotate(360deg); } }
 
         .editor-card { display: none; padding: 0; overflow: hidden; background: var(--editor-bg); position: relative; }
         .editor-header {
             display: flex; flex-direction: column; gap: 12px;
-            padding: 16px 20px; background: #161b22; border-bottom: 1px solid #30363d;
+            padding: 16px 20px;
+            background: var(--editor-bg); /* Use editor background for consistency */
+            border-bottom: 1px solid var(--border); /* Use border color for separation */
         }
-        .editor-title { color: #fff; display: flex; align-items: center; gap: 8px; font-weight: 600; }
-        .editor-actions { display: flex; flex-wrap: wrap; gap: 10px; width: 100%; }
-        .editor-actions .btn { flex: 1 1 150px; padding: 12px; font-size: 0.9rem; }
-
-        /* AREA TEKS NATIVE MENGGUNAKAN PRE (Sangat smooth) */
-        .content-container {
-            position: relative;
-            width: 100%;
-            height: 65vh;
-            display: flex;
-        }
-        
-        .code-scroll-area {
-            flex: 1;
-            height: 100%;
-            overflow-y: auto;
-            overflow-x: auto;
-            padding: 20px 40px 20px 20px; 
-            -webkit-overflow-scrolling: touch;
-            scroll-behavior: auto;
-            scrollbar-width: none;
-        }
-        .code-scroll-area::-webkit-scrollbar { display: none; }
-
-        pre {
-            margin: 0;
-            background: transparent;
-            color: var(--editor-text);
-            font-family: 'Courier New', Courier, monospace;
-            font-size: 13px;
-            line-height: 1.6;
-            white-space: pre; 
-            user-select: text; 
-        }
-
-        /* CUSTOM DRAGGABLE SLIDER (Kotak Scroll Besar) */
-        .custom-scrollbar-track {
-            position: absolute; top: 10px; bottom: 10px; right: 6px; width: 24px;
-            background: rgba(48, 54, 61, 0.3); border-radius: 12px; z-index: 10;
-        }
-        .custom-scrollbar-thumb {
-            position: absolute; top: 0; left: 2px; width: 20px; height: 60px;
-            background: rgba(139, 148, 158, 0.6); border-radius: 10px;
-            cursor: pointer; touch-action: none; transition: background 0.2s;
-        }
-        .custom-scrollbar-thumb:active, .custom-scrollbar-thumb.dragging { background: var(--primary); }
-        .custom-scrollbar-thumb::after {
-            content: ''; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            width: 10px; height: 2px; background: rgba(255,255,255,0.8);
-            box-shadow: 0 -4px 0 rgba(255,255,255,0.8), 0 4px 0 rgba(255,255,255,0.8);
-        }
-
-        .editor-footer {
-            display: flex; justify-content: space-between; padding: 12px 20px;
-            background: #161b22; border-top: 1px solid #30363d; color: #8b949e; font-size: 0.85rem; font-family: monospace;
-        }
-
-        .toast {
-            position: fixed; bottom: -100px; left: 50%; transform: translateX(-50%);
-            background: #334155; color: white; padding: 12px 24px;
-            border-radius: 50px; font-size: 0.9rem; font-weight: 500;
-            display: flex; align-items: center; gap: 8px;
-            transition: bottom 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            z-index: 1000; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
-            white-space: nowrap;
-        }
-        .toast.show { bottom: 30px; }
-
-        /* CUSTOM MODAL UNTUK PERINGATAN KEAMANAN */
-        .modal-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(4px);
-            display: flex; justify-content: center; align-items: center;
-            z-index: 2000; opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
-        }
-        .modal-overlay.show { opacity: 1; pointer-events: auto; }
-        .modal-box {
-            background: white; border-radius: 20px; width: 90%; max-width: 400px;
-            padding: 24px; text-align: center; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-            transform: scale(0.9); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        }
-        .modal-overlay.show .modal-box { transform: scale(1); }
-        .modal-icon {
-            width: 60px; height: 60px; background: #fee2e2; color: #ef4444;
-            border-radius: 50%; display: flex; justify-content: center; align-items: center;
-            margin: 0 auto 16px auto;
-        }
-        .modal-title { font-size: 1.25rem; font-weight: 700; color: #1e293b; margin-bottom: 8px; }
-        .modal-text { color: #64748b; font-size: 0.95rem; line-height: 1.5; margin-bottom: 24px; }
-        .modal-btn {
-            background: var(--primary); color: white; width: 100%;
-            padding: 12px; border-radius: 12px; border: none; font-weight: 600;
-            font-size: 1rem; cursor: pointer;
-        }
-        .modal-btn:active { transform: scale(0.98); }
-
-        @media (min-width: 640px) {
-            .input-group { flex-direction: row; }
-            .btn { width: auto; }
-            .editor-header { flex-direction: row; justify-content: space-between; }
-            .editor-actions { width: auto; }
-        }
-        
-        .flex-center { display: flex; align-items: center; gap: 6px; }
-
-        /* HISTORY STYLES */
-        .history-card { margin-top: 10px; display: none; }
-        .history-card.show { display: block; }
-        .history-header { font-weight: 600; margin-bottom: 12px; font-size: 1.1rem; color: #1e293b; }
-        .history-list { display: flex; flex-direction: column; gap: 8px; max-height: 200px; overflow-y: auto; }
-        .history-item {
-            display: flex; justify-content: space-between; align-items: center;
-            background: #f8fafc; padding: 10px 14px; border-radius: 8px; border: 1px solid #e2e8f0;
-            transition: all 0.2s ease;
-        }
-        .history-item:hover { border-color: var(--primary); box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-        .history-link {
-            font-size: 0.9rem; word-break: break-all; cursor: pointer;
-            color: var(--primary); flex: 1; margin-right: 10px; text-decoration: none;
-        }
-        .history-link:hover { text-decoration: underline; }
-        .history-actions { display: flex; gap: 8px; }
-        .icon-btn {
-            background: transparent; border: none; cursor: pointer; color: #64748b;
-            padding: 4px; display:flex; align-items:center; justify-content:center;
-            border-radius: 4px; transition: all 0.2s;
-        }
-        .icon-btn:hover { color: var(--primary); background: #e0e7ff; }
-        .icon-btn.delete:hover { color: #ef4444; background: #fee2e2; }
     </style>
 </head>
 <body>
-
     <div class="bg-decor"></div>
-
     <div class="container">
-        <!-- Header -->
-        <div class="header">
-            <h1>Repo <span>Extractor</span></h1>
-        </div>
+        <header class="header">
+            <h1>Acode <span>Pro</span> Repo Extractor</h1>
+            <p class="progress-sub">Extract a GitHub repository directly to your Acode project. (Safe Mode: Read-only access)</p>
+        </header>
 
-        <!-- Input Area -->
         <div class="card">
             <div class="input-group">
                 <div class="input-wrapper">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
-                    <input type="text" id="repoUrl" placeholder="https://github.com/user/repo ...">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 21h7.5A2.25 2.25 0 0020.25 18V9.75M10.5 21h-4.224a2.25 2.25 0 01-2.249-2.5l1.092-7.649m4.162 10.149V6a1.125 1.125 0 011.125-1.125h2.25M10.5 21an2.25 2.25 0 002.25-2.25V6a1.125 1.125 0 011.125-1.125h2.25M15 12a1.125 1.125 0 00-1.125-1.125H12a1.125 1.125 0 00-1.125 1.125V15a1.125 1.125 0 001.125 1.125h1.875a1.125 1.125 0 001.125-1.125V12z"></path></svg>
+                    <input type="text" id="repoUrl" placeholder="Enter GitHub repository URL (e.g., github.com/user/repo)">
                 </div>
-                <button id="fetchBtn" class="btn" onclick="startFetch()">
-                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
-                    <span id="btnText">Ekstrak Kode</span>
+                <button class="btn" id="extractBtn">
+                    <svg class="spinner hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true" style="width: 20px; height: 20px;"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12a7.5 7.5 0 0115 0v2.25c0 1.385-.353 2.709-1 3.905l-5.405-5.405c-.328-.328-.75-.52-1.2-.52h-.59c-.45 0-.872.192-1.2.52L6.105 18.155A7.465 7.465 0 014.5 12z"></path></svg>
+                    <span>Extract Repository</span>
                 </button>
             </div>
         </div>
 
-        <!-- History Area -->
-        <div class="card history-card" id="historyCard">
-            <div class="history-header">Riwayat Tautan</div>
-            <div class="history-list" id="historyList">
-                <!-- Items will be generated by JS -->
-            </div>
-        </div>
-
-        <!-- Progress Area -->
-        <div class="card progress-area" id="statusContainer">
+        <div class="card progress-area" id="progressArea">
             <div class="progress-header">
-                <div style="display: flex; gap: 12px; align-items: center;">
-                    <svg class="spinner" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="2" x2="12" y2="6"></line><line x1="12" y1="18" x2="12" y2="22"></line><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line><line x1="2" y1="12" x2="6" y2="12"></line><line x1="18" y1="12" x2="22" y2="12"></line><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line></svg>
-                    <div>
-                        <div class="progress-title" id="statusTitle">Menghubungkan...</div>
-                        <div class="progress-sub" id="statusText">Mencari repositori</div>
-                    </div>
+                <div class="progress-info">
+                    <div class="progress-title">Processing...</div>
+                    <div class="progress-sub" id="progressStatus">Starting extraction...</div>
                 </div>
-                <div class="progress-title" id="progressPercent" style="color: var(--primary);">0%</div>
+                <div class="progress-percentage" id="progressPercentage">0%</div>
             </div>
             <div class="progress-track">
                 <div class="progress-bar" id="progressBar"></div>
             </div>
         </div>
 
-        <!-- Output Area -->
-        <div class="card editor-card" id="outputContainer">
+        <div class="card editor-card" id="editorCard">
             <div class="editor-header">
-                <div class="editor-title">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-                    <span id="fileCountBadge">0</span> File Ditemukan
-                </div>
-                <div class="editor-actions">
-                    <button class="btn btn-secondary" onclick="downloadText()">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                        Simpan .txt
-                    </button>
-                    <button class="btn btn-secondary" onclick="copyAllText()">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="8" y="8" width="12" height="12" rx="2" ry="2"></rect><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"></path></svg>
-                        Salin Semua
-                    </button>
-                    <!-- Tombol Smart Copy (Kode Murni) -->
-                    <button class="btn" id="copyBtn" onclick="smartCopy()" style="background: #10b981;">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-                        Salin Kode Saja
+                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                    <div style="font-size: 1.1rem; font-weight: 600;" id="editorTitle">Output</div>
+                    <button class="btn-secondary" id="saveBtn" style="padding: 10px 16px; font-size: 0.9rem;">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" style="width: 18px; height: 18px;"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"></path></svg>
+                        Save as project
                     </button>
                 </div>
+                <div style="font-size: 0.85rem; color: var(--text-muted);" id="filePath"></div>
             </div>
-            
-            <div class="content-container">
-                <!-- Area Teks Native (Bukan textarea) -->
-                <div class="code-scroll-area" id="scrollArea" tabindex="0" role="textbox" aria-readonly="true" aria-label="Hasil kode ekstraksi">
-                    <pre id="resultText">Hasil kode akan muncul di sini...</pre>
-                </div>
-                
-                <!-- Custom Slider (Kotak Geser) -->
-                <div class="custom-scrollbar-track" id="scrollTrack">
-                    <div class="custom-scrollbar-thumb" id="scrollThumb"></div>
-                </div>
-            </div>
-            
-            <div class="editor-footer">
-                <div class="flex-center">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="21" y1="10" x2="3" y2="10"></line><line x1="21" y1="6" x2="3" y2="6"></line><line x1="21" y1="14" x2="3" y2="14"></line><line x1="21" y1="18" x2="3" y2="18"></line></svg>
-                    <span id="lineCount">0 baris</span>
-                </div>
-                <div class="flex-center">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg>
-                    <span id="sizeCount">0 KB</span>
-                </div>
-            </div>
+            <pre id="editor" style="width: 100%; height: 400px; padding: 20px; font-family: 'Fira Code', 'JetBrains Mono', monospace; font-size: 0.9rem; white-space: pre-wrap; word-break: break-all; overflow: auto; color: var(--editor-text);"></pre>
         </div>
-    </div>
 
-    <!-- Toast UI -->
-    <div class="toast" id="toastMsg">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
-        <span id="toastText">Berhasil!</span>
-    </div>
-
-    <!-- Modal Peringatan Keamanan HP -->
-    <div class="modal-overlay" id="safetyModal">
-        <div class="modal-box">
-            <div class="modal-icon">
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
-            </div>
-            <h2 class="modal-title">Kode Terlalu Raksasa!</h2>
-            <p class="modal-text">Demi keamanan HP-mu, fitur "Salin" dinonaktifkan untuk kode ini karena ukurannya sangat besar dan dapat membuat HP hang/restart.<br><br>Gunakan tombol <b>Simpan .txt</b> untuk menyimpannya dengan sangat aman ke dalam perangkatmu.</p>
-            <button class="modal-btn" onclick="closeModal()">Saya Mengerti</button>
-        </div>
     </div>
 
     <script>
-        const BINARY_EXTENSIONS = [
-            '.png', '.jpg', '.jpeg', '.gif', '.svg', '.ico', '.webp', '.bmp', '.tiff',
-            '.mp3', '.mp4', '.wav', '.ogg', '.avi', '.mov', '.mkv',
-            '.zip', '.tar', '.gz', '.rar', '.7z', '.exe', '.dll', '.so', '.bin',
-            '.pdf', '.ttf', '.otf', '.woff', '.woff2', '.eot', '.pyc', '.sqlite3'
-        ];
+        const repoUrlInput = document.getElementById('repoUrl');
+        const extractBtn = document.getElementById('extractBtn');
+        const spinner = extractBtn.querySelector('.spinner');
+        const progressArea = document.getElementById('progressArea');
+        const progressStatus = document.getElementById('progressStatus');
+        const progressBar = document.getElementById('progressBar');
+        const progressPercentage = document.getElementById('progressPercentage');
+        const editorCard = document.getElementById('editorCard');
+        const editorTitle = document.getElementById('editorTitle');
+        const filePath = document.getElementById('filePath');
+        const editor = document.getElementById('editor');
+        const saveBtn = document.getElementById('saveBtn');
 
-        const EXCLUDED_DIRS = ['.git/'];
-        let rawCodeOnly = "";
-        let fullOutputText = "";
+        let currentFileContent = '';
+        let currentFileName = '';
+        let currentRepoName = '';
 
-        // ----- LOGIKA CUSTOM SLIDER (DRAG UNTUK SCROLL) -----
-        const scrollArea = document.getElementById('scrollArea');
-        const scrollTrack = document.getElementById('scrollTrack');
-        const scrollThumb = document.getElementById('scrollThumb');
-        
-        let isDragging = false;
-        let startY, startScrollTop;
-
-        function selectResultText() {
-            const range = document.createRange();
-            const resultText = document.getElementById('resultText');
-            range.selectNodeContents(resultText);
-
-            const selection = window.getSelection();
-            selection.removeAllRanges();
-            selection.addRange(range);
-            scrollArea.focus({ preventScroll: true });
-        }
-
-        scrollArea.addEventListener('pointerdown', () => {
-            scrollArea.focus({ preventScroll: true });
-        });
-
-        scrollArea.addEventListener('keydown', (e) => {
-            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'a') {
-                e.preventDefault();
-                selectResultText();
-            }
-        });
-
-        scrollArea.addEventListener('scroll', () => {
-            if (isDragging) return;
-            const maxScrollTop = scrollArea.scrollHeight - scrollArea.clientHeight;
-            if (maxScrollTop <= 0) return;
-            const scrollPercentage = scrollArea.scrollTop / maxScrollTop;
-            
-            const maxThumbTop = scrollTrack.clientHeight - scrollThumb.clientHeight;
-            scrollThumb.style.transform = `translateY(${scrollPercentage * maxThumbTop}px)`;
-        });
-
-        scrollThumb.addEventListener('touchstart', (e) => {
-            isDragging = true;
-            scrollThumb.classList.add('dragging');
-            startY = e.touches[0].clientY;
-            startScrollTop = scrollArea.scrollTop;
-            e.preventDefault(); 
-        }, {passive: false});
-
-        document.addEventListener('touchmove', (e) => {
-            if (!isDragging) return;
-            e.preventDefault(); 
-            const deltaY = e.touches[0].clientY - startY;
-            
-            const maxThumbTop = scrollTrack.clientHeight - scrollThumb.clientHeight;
-            const maxScrollTop = scrollArea.scrollHeight - scrollArea.clientHeight;
-            const movePercentage = deltaY / maxThumbTop;
-            
-            scrollArea.scrollTop = startScrollTop + (movePercentage * maxScrollTop);
-            
-            let newY = (startScrollTop / maxScrollTop) * maxThumbTop + deltaY;
-            newY = Math.max(0, Math.min(newY, maxThumbTop));
-            scrollThumb.style.transform = `translateY(${newY}px)`;
-        }, {passive: false});
-
-        document.addEventListener('touchend', () => {
-            isDragging = false;
-            scrollThumb.classList.remove('dragging');
-        });
-
-        scrollThumb.addEventListener('mousedown', (e) => {
-            isDragging = true;
-            scrollThumb.classList.add('dragging');
-            startY = e.clientY;
-            startScrollTop = scrollArea.scrollTop;
-            e.preventDefault();
-        });
-
-        document.addEventListener('mousemove', (e) => {
-            if (!isDragging) return;
-            e.preventDefault();
-            const deltaY = e.clientY - startY;
-            const maxThumbTop = scrollTrack.clientHeight - scrollThumb.clientHeight;
-            const maxScrollTop = scrollArea.scrollHeight - scrollArea.clientHeight;
-            const movePercentage = deltaY / maxThumbTop;
-            
-            scrollArea.scrollTop = startScrollTop + (movePercentage * maxScrollTop);
-            
-            let newY = (startScrollTop / maxScrollTop) * maxThumbTop + deltaY;
-            newY = Math.max(0, Math.min(newY, maxThumbTop));
-            scrollThumb.style.transform = `translateY(${newY}px)`;
-        });
-
-        document.addEventListener('mouseup', () => {
-            isDragging = false;
-            scrollThumb.classList.remove('dragging');
-        });
-        // ----------------------------------------------------
-
-        function showToast(message) {
-            const toast = document.getElementById('toastMsg');
-            document.getElementById('toastText').textContent = message;
-            toast.classList.add('show');
-            setTimeout(() => toast.classList.remove('show'), 3000);
-        }
-
-        function showModal() {
-            document.getElementById('safetyModal').classList.add('show');
-        }
-
-        function closeModal() {
-            document.getElementById('safetyModal').classList.remove('show');
-        }
-
-        function parseUrl(urlStr) {
-            try {
-                urlStr = urlStr.trim().replace(/\/$/, "").replace(/\.git$/, "");
-                const url = new URL(urlStr);
-                const parts = url.pathname.split('/').filter(p => p);
-                if (parts.length >= 2) {
-                    const platform = url.hostname.includes('github') ? 'github' : url.hostname.includes('codeberg') ? 'codeberg' : 'unknown';
-                    let branch = null;
-                    if (platform === 'github' && parts.length >= 4 && parts[2] === 'tree') {
-                        branch = parts.slice(3).join('/');
-                    } else if (platform === 'codeberg' && parts.length >= 5 && parts[2] === 'src' && parts[3] === 'branch') {
-                        branch = parts.slice(4).join('/');
-                    }
-                    return {
-                        platform: platform,
-                        owner: parts[0],
-                        repo: parts[1],
-                        branch: branch
-                    };
-                }
-            } catch (e) { }
-            return null;
-        }
-
-        // HISTORY FUNCTIONS
-        function getHistory() {
-            try {
-                return JSON.parse(localStorage.getItem('repoHistory')) || [];
-            } catch (e) {
-                return [];
-            }
-        }
-
-        function saveToHistory(url) {
-            let history = getHistory();
-            // Remove if already exists to move it to top
-            history = history.filter(item => item !== url);
-            history.unshift(url);
-            // Keep only last 10 items
-            if (history.length > 10) history = history.slice(0, 10);
-            localStorage.setItem('repoHistory', JSON.stringify(history));
-            renderHistory();
-        }
-
-        function deleteFromHistory(url, event) {
-            if(event) event.stopPropagation();
-            let history = getHistory();
-            history = history.filter(item => item !== url);
-            localStorage.setItem('repoHistory', JSON.stringify(history));
-            renderHistory();
-        }
-
-        function renderHistory() {
-            const history = getHistory();
-            const historyCard = document.getElementById('historyCard');
-            const historyList = document.getElementById('historyList');
-
-            if (history.length === 0) {
-                historyCard.classList.remove('show');
+        extractBtn.addEventListener('click', async () => {
+            const url = repoUrlInput.value.trim();
+            if (!url) {
+                alert('Please enter a GitHub repository URL.');
                 return;
             }
 
-            historyCard.classList.add('show');
-            historyList.innerHTML = '';
-
-            history.forEach(url => {
-                const item = document.createElement('div');
-                item.className = 'history-item';
-
-                const link = document.createElement('div');
-                link.className = 'history-link';
-                link.textContent = url;
-                link.onclick = () => {
-                    document.getElementById('repoUrl').value = url;
-                };
-
-                const actions = document.createElement('div');
-                actions.className = 'history-actions';
-
-                const copyBtn = document.createElement('button');
-                copyBtn.className = 'icon-btn';
-                copyBtn.title = 'Salin Tautan';
-                copyBtn.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>';
-                copyBtn.onclick = (e) => {
-                    e.stopPropagation();
-                    copyToClipboard(url, 'Tautan disalin!');
-                };
-
-                const delBtn = document.createElement('button');
-                delBtn.className = 'icon-btn delete';
-                delBtn.title = 'Hapus dari Riwayat';
-                delBtn.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>';
-                delBtn.onclick = (e) => deleteFromHistory(url, e);
-
-                actions.appendChild(copyBtn);
-                actions.appendChild(delBtn);
-
-                item.appendChild(link);
-                item.appendChild(actions);
-                historyList.appendChild(item);
-            });
-        }
-
-        // Initialize history on load
-        document.addEventListener('DOMContentLoaded', renderHistory);
-
-        function isIncluded(path) {
-            const p = path.toLowerCase();
-            if (EXCLUDED_DIRS.some(dir => p.includes(`/${dir}`) || p.startsWith(dir))) return false;
-            const match = p.match(/\.[0-9a-z]+$/);
-            if (match && BINARY_EXTENSIONS.includes(match[0])) return false;
-            return true;
-        }
-
-        async function fetchWithProxy(url) {
-            const proxies = ['', 'https://api.allorigins.win/raw?url=', 'https://api.codetabs.com/v1/proxy?quest='];
-            for (let proxy of proxies) {
-                try {
-                    const res = await fetch(proxy ? proxy + encodeURIComponent(url) : url);
-                    if (res.ok) return await res.text();
-                } catch (e) { }
-            }
-            return "// ❌ Gagal mengunduh file ini karena masalah server.";
-        }
-
-        async function startFetch() {
-            const urlInput = document.getElementById('repoUrl').value;
-            const parsed = parseUrl(urlInput);
-            
-            if (!parsed || parsed.platform === 'unknown') {
-                alert('Tolong masukkan link GitHub atau Codeberg yang valid.');
+            // Basic validation for GitHub URL
+            const githubUrlRegex = /^(https?:\/\/)?(www\.)?github\.com\/[a-zA-Z0-9_-]+\/[a-zA-Z0-9_-]+(\/.*)?$/;
+            if (!githubUrlRegex.test(url)) {
+                alert('Please enter a valid GitHub repository URL.');
                 return;
             }
 
-            const btn = document.getElementById('fetchBtn');
-            const statusContainer = document.getElementById('statusContainer');
-            const outputContainer = document.getElementById('outputContainer');
-            
-            btn.disabled = true;
-            document.getElementById('btnText').textContent = 'Memproses...';
-            
-            outputContainer.style.display = 'none';
-            statusContainer.style.display = 'block';
-            
-            document.getElementById('progressBar').style.width = '0%';
-            document.getElementById('progressPercent').textContent = '0%';
-            rawCodeOnly = "";
-            fullOutputText = "";
-            
-            scrollThumb.style.transform = `translateY(0px)`;
-            scrollArea.scrollTop = 0;
+            // Extract repo details (user/repo)
+            const pathParts = new URL(url.includes('://') ? url : `https://${url}`).pathname.split('/').filter(p => p);
+            if (pathParts.length < 2) {
+                alert('Invalid GitHub repository URL format. Expected: github.com/user/repo');
+                return;
+            }
+            const owner = pathParts[0];
+            const repo = pathParts[1];
+            currentRepoName = repo;
+
+            // Reset UI
+            editorCard.style.display = 'none';
+            editor.textContent = '';
+            filePath.textContent = '';
+            progressArea.style.display = 'flex';
+            progressBar.style.width = '0%';
+            progressPercentage.textContent = '0%';
+            progressStatus.textContent = 'Initializing extraction...';
+            extractBtn.disabled = true;
+            spinner.classList.remove('hidden');
 
             try {
-                let apiUrl = parsed.platform === 'github' 
-                    ? `https://api.github.com/repos/${parsed.owner}/${parsed.repo}`
-                    : `https://codeberg.org/api/v1/repos/${parsed.owner}/${parsed.repo}`;
+                // Mock API call to GitHub (replace with actual backend/proxy in Acode environment)
+                const mockApiUrl = `https://api.github.com/repos/${owner}/${repo}/git/trees/main?recursive=1`;
                 
-                let res = await fetch(apiUrl);
-                if (!res.ok) throw new Error("Repositori Private atau Tidak Ditemukan.");
-                const repoData = await res.json();
-                const branch = parsed.branch || repoData.default_branch || 'main';
+                // Simulate fetch progress
+                let progress = 0;
+                const totalSteps = 100; // Arbitrary total steps for simulation
+                const increment = 100 / totalSteps;
 
-                res = await fetch(`${apiUrl}/git/trees/${branch}?recursive=1`);
-                const treeData = await res.json();
+                const updateProgress = (status, currentProgress) => {
+                    progress = Math.min(100, currentProgress);
+                    progressStatus.textContent = status;
+                    progressBar.style.width = `${progress}%`;
+                    progressPercentage.textContent = `${Math.round(progress)}%`;
+                };
 
-                let files = treeData.tree
-                    .filter(i => i.type === 'blob' || (i.type !== 'tree' && i.mode !== '040000'))
-                    .filter(i => isIncluded(i.path))
-                    .sort((a, b) => a.path.localeCompare(b.path));
+                updateProgress('Fetching repository tree...', 10);
 
-                if (files.length === 0) throw new Error("Tidak ada file teks ditemukan.");
-
-                files = files.map(item => ({
-                    path: item.path,
-                    url: parsed.platform === 'github'
-                        ? `https://raw.githubusercontent.com/${parsed.owner}/${parsed.repo}/${branch}/${item.path}`
-                        : `https://codeberg.org/${parsed.owner}/${parsed.repo}/raw/branch/${branch}/${item.path}`
-                }));
-
-                document.getElementById('fileCountBadge').textContent = files.length;
-                
-                const total = files.length;
-                let completed = 0;
-                let displayArray = new Array(total);
-                let rawArray = new Array(total);
-                let currentIndex = 0;
-
-                async function worker() {
-                    while (currentIndex < total) {
-                        const idx = currentIndex++;
-                        const file = files[idx];
-                        
-                        document.getElementById('statusText').textContent = file.path;
-                        const text = await fetchWithProxy(file.url);
-                        
-                        let block = `\n// ` + `─`.repeat(76) + `\n`;
-                        block += `// 📄 PATH: ${file.path}\n`;
-                        block += `// ` + `─`.repeat(76) + `\n\n`;
-                        block += text + `\n`;
-                        displayArray[idx] = block;
-
-                        // Hanya Kode Mentah 100%
-                        rawArray[idx] = text + `\n\n`;
-                        
-                        completed++;
-                        let pct = Math.round((completed / total) * 100);
-                        document.getElementById('progressBar').style.width = `${pct}%`;
-                        document.getElementById('progressPercent').textContent = `${pct}%`;
+                const response = await fetch(mockApiUrl, {
+                    headers: {
+                        'Accept': 'application/vnd.github.v3+json'
+                        // Add Authorization header if using a token:
+                        // 'Authorization': `token YOUR_GITHUB_TOKEN`
                     }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`GitHub API error: ${response.status} ${response.statusText}`);
                 }
 
-                const workers = [];
-                for (let i = 0; i < Math.min(10, total); i++) workers.push(worker());
-                await Promise.all(workers);
+                const data = await response.json();
+                const files = data.tree.filter(item => item.type === 'blob');
 
-                let finalDisplay = `/**\n * 🚀 REPOSITORY SOURCE CODE\n * Source:   ${urlInput}\n * Platform: ${parsed.platform.toUpperCase()}\n * Files:    ${total}\n */\n\n`;
-                finalDisplay += `// --- DAFTAR ISI ---\n`;
-                files.forEach((f, index) => { finalDisplay += `// [${(index + 1).toString().padStart(3, '0')}] ${f.path}\n`; });
-                finalDisplay += `// ------------------\n\n`;
-                finalDisplay += displayArray.join('');
+                if (files.length === 0) {
+                    throw new Error('No files found in the repository.');
+                }
 
-                rawCodeOnly = rawArray.join('');
-                fullOutputText = finalDisplay;
+                updateProgress(`Found ${files.length} files. Downloading first file...`, 30);
 
-                document.getElementById('resultText').textContent = finalDisplay;
-                
-                const lines = rawCodeOnly.split('\n').length;
-                const sizeKb = (new Blob([rawCodeOnly]).size / 1024).toFixed(1);
-                document.getElementById('lineCount').textContent = `${lines.toLocaleString()} baris`;
-                document.getElementById('sizeCount').textContent = `${sizeKb} KB`;
+                // For safe mode, we'll only display the first file for demonstration.
+                // In a real Acode integration, you'd iterate and save all files.
+                const firstFile = files[0];
+                const fileContentResponse = await fetch(firstFile.url, {
+                    headers: {
+                        'Accept': 'application/vnd.github.v3.raw'
+                    }
+                });
 
-                statusContainer.style.display = 'none';
-                outputContainer.style.display = 'block';
+                if (!fileContentResponse.ok) {
+                    throw new Error(`Failed to fetch file content: ${firstFile.path}`);
+                }
 
-                saveToHistory(urlInput);
+                currentFileContent = await fileContentResponse.text();
+                currentFileName = firstFile.path;
 
-                showToast('Ekstraksi Selesai!');
+                updateProgress(`Displaying ${currentFileName}...`, 100);
 
-            } catch (err) {
-                alert('Gagal: ' + err.message);
-                statusContainer.style.display = 'none';
-            } finally {
-                btn.disabled = false;
-                document.getElementById('btnText').textContent = 'Ekstrak Kode';
+                setTimeout(() => { // Simulate UI update delay
+                    progressArea.style.display = 'none';
+                    editorCard.style.display = 'block';
+                    editorTitle.textContent = currentFileName;
+                    filePath.textContent = `${owner}/${repo}/${currentFileName}`;
+                    editor.textContent = currentFileContent;
+                    extractBtn.disabled = false;
+                    spinner.classList.add('hidden');
+                }, 500);
+
+            } catch (error) {
+                console.error('Extraction error:', error);
+                progressStatus.textContent = `Error: ${error.message}`;
+                progressBar.style.width = '0%';
+                progressPercentage.textContent = 'Error';
+                extractBtn.disabled = false;
+                spinner.classList.add('hidden');
+                alert(`Error during extraction: ${error.message}`);
             }
-        }
+        });
 
-        function copyToClipboard(text, successMessage) {
-            const fallbackCopy = () => {
-                const tempTa = document.createElement("textarea");
-                tempTa.value = text;
-                tempTa.style.position = "fixed";
-                tempTa.style.opacity = "0";
-                document.body.appendChild(tempTa);
-                tempTa.select();
-                document.execCommand('copy');
-                document.body.removeChild(tempTa);
-                showToast(successMessage);
-            };
-
-            if (navigator.clipboard && window.isSecureContext) {
-                navigator.clipboard.writeText(text)
-                    .then(() => showToast(successMessage))
-                    .catch(fallbackCopy);
+        saveBtn.addEventListener('click', () => {
+            if (currentFileContent && currentFileName && currentRepoName) {
+                // In a real Acode environment, this would call Acode API to save project
+                alert(`Simulating "Save as project" for:\nRepo: ${currentRepoName}\nFile: ${currentFileName}\nContent length: ${currentFileContent.length}`);
+                // Example of how Acode API might be used (concept only):
+                // acode.fs(acode.app.getPath('home')).createDirectory(currentRepoName)
+                //   .then(dir => dir.createFile(currentFileName, currentFileContent));
             } else {
-                fallbackCopy();
+                alert('No content to save.');
             }
-        }
-
-        // FITUR SALIN SEMUA (termasuk header, daftar isi, dan path file)
-        function copyAllText() {
-            if (!fullOutputText) return;
-            copyToClipboard(fullOutputText, 'Semua teks di kotak kode tersalin!');
-        }
-
-        // FITUR SMART COPY (DENGAN RAM PROTECTOR)
-        function smartCopy() {
-            if (!rawCodeOnly) return;
-            
-            // Batas Keamanan: ~500KB (Mencegah HP Restart/OOM)
-            const MAX_SAFE_SIZE = 500000; 
-            
-            if (rawCodeOnly.length > MAX_SAFE_SIZE) {
-                showModal(); // Tampilkan pesan larangan
-                return;
-            }
-
-            copyToClipboard(rawCodeOnly, 'Hanya Kode Murni yang Tersalin!');
-        }
-
-        // FITUR DOWNLOAD (Aman untuk ukuran berapapun)
-        function downloadText() {
-            if (!rawCodeOnly) return;
-            const blob = new Blob([rawCodeOnly], { type: "text/plain;charset=utf-8" });
-            const link = document.createElement("a");
-            const parsed = parseUrl(document.getElementById('repoUrl').value);
-            link.href = URL.createObjectURL(blob);
-            link.download = parsed ? `${parsed.repo}-purecode.txt` : `purecode.txt`;
-            link.click();
-            URL.revokeObjectURL(link.href);
-            showToast('Mengunduh file...');
-        }
+        });
     </script>
 </body>
 </html>
-
-
