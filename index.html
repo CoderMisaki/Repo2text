@@ -21,6 +21,93 @@
             --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
         }
 
+        /* Dark Mode - Monokrom Mewah */
+        body.dark-mode {
+            --primary: #6a8eff; /* A vivid blue for accent, stands out on dark */
+            --primary-hover: #537bd7;
+            --bg-body: #1a1a2e; /* Dark, deep charcoal/navy */
+            --bg-card: #2a2a3e; /* Slightly lighter than body, subtle contrast */
+            --text-main: #e0e0e0; /* Light text */
+            --text-muted: #a0a0a0; /* Medium gray for muted text */
+            --border: #3a3a4e; /* Darker border color */
+            --editor-bg: #1e1e2e; /* Slightly adjusted dark editor background */
+            --editor-text: #c0c0c0; /* Slightly adjusted light editor text */
+            --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.15); /* Darker, more pronounced shadow */
+        }
+
+        body.dark-mode .bg-decor {
+            background: linear-gradient(135deg, #2a2a3e 0%, #3a3a4e 100%);
+        }
+
+        body.dark-mode input[type="text"] {
+            background: #1e1e2e;
+            color: var(--text-main);
+            border-color: var(--border);
+        }
+        body.dark-mode input[type="text"]:focus {
+            background: var(--bg-card);
+            border-color: var(--primary);
+        }
+
+        body.dark-mode .btn-secondary {
+            background: var(--border); /* Use border color for secondary button background */
+            color: var(--text-main);
+        }
+        body.dark-mode .btn-secondary:hover {
+            background: #4a4a5e;
+        }
+
+        body.dark-mode .toast {
+            background: var(--bg-card);
+            color: var(--text-main);
+            box-shadow: var(--shadow);
+        }
+        body.dark-mode .toast svg {
+            stroke: #34d399; /* Still a light green for success, stands out */
+        }
+
+        body.dark-mode .modal-box {
+            background: var(--bg-card);
+            color: var(--text-main);
+            box-shadow: var(--shadow);
+        }
+        body.dark-mode .modal-icon {
+            background: #4a2a2e; /* Darker red for error icon background */
+            color: #ef4444;
+        }
+        body.dark-mode .modal-title {
+            color: var(--text-main);
+        }
+        body.dark-mode .modal-text {
+            color: var(--text-muted);
+        }
+
+        body.dark-mode .history-header {
+            color: var(--text-main);
+        }
+        body.dark-mode .history-item {
+            background: var(--bg-body);
+            border: 1px solid var(--border);
+        }
+        body.dark-mode .history-item:hover {
+            border-color: var(--primary);
+        }
+        body.dark-mode .icon-btn {
+            color: var(--text-muted);
+        }
+        body.dark-mode .icon-btn:hover {
+            color: var(--primary);
+            background: var(--border); /* Use border color for hover background */
+        }
+        body.dark-mode .icon-btn.delete:hover {
+            color: #ef4444;
+            background: #4a2a2e;
+        }
+
+        body.dark-mode .progress-track {
+            background: var(--border);
+        }
+
         * {
             box-sizing: border-box;
             margin: 0;
@@ -34,6 +121,7 @@
             line-height: 1.5;
             padding: 20px;
             overflow-x: hidden;
+            transition: background-color 0.3s ease, color 0.3s ease; /* Smooth theme transition */
         }
 
         .bg-decor {
@@ -42,6 +130,7 @@
             z-index: -1;
             border-bottom-left-radius: 40px;
             border-bottom-right-radius: 40px;
+            transition: background 0.3s ease; /* Smooth theme transition */
         }
 
         .container {
@@ -52,9 +141,38 @@
             gap: 24px;
         }
 
-        .header { text-align: center; margin-bottom: 10px; }
-        .header h1 { font-size: 2.2rem; font-weight: 800; color: #1e293b; margin-bottom: 8px; }
+        .header-wrapper {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .header { text-align: left; margin-bottom: 0; }
+        .header h1 { font-size: 2.2rem; font-weight: 800; color: var(--text-main); margin-bottom: 8px; }
         .header h1 span { color: var(--primary); }
+
+        .btn-theme-toggle {
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            color: var(--text-main); /* Use text color */
+            padding: 8px;
+            border-radius: 8px;
+            transition: color 0.2s, background 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .btn-theme-toggle:hover {
+            color: var(--primary);
+            background: var(--border);
+        }
+        .btn-theme-toggle .icon-light, .btn-theme-toggle .icon-dark {
+            stroke: currentColor;
+        }
+        .hidden { display: none !important; }
 
         .card {
             background: var(--bg-card);
@@ -62,22 +180,51 @@
             padding: 24px;
             box-shadow: var(--shadow);
             border: 1px solid var(--border);
-            transition: transform 0.3s ease, opacity 0.3s ease;
+            transition: transform 0.3s ease, opacity 0.3s ease, background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease; /* Smooth theme transition */
         }
 
         .input-group { display: flex; flex-direction: column; gap: 12px; }
-        .input-wrapper { position: relative; flex: 1; }
-        .input-wrapper svg {
+        .input-wrapper { position: relative; flex: 1; display: flex; align-items: center; }
+        .input-wrapper svg:first-child {
             position: absolute; left: 16px; top: 50%; transform: translateY(-50%);
             color: #94a3b8; width: 20px; height: 20px;
+            transition: color 0.3s ease;
         }
 
         input[type="text"] {
-            width: 100%; padding: 16px 16px 16px 44px; font-size: 1rem;
+            width: 100%; padding: 16px 50px 16px 44px; /* Increased right padding for paste button */
+            font-size: 1rem;
             border: 2px solid var(--border); border-radius: var(--radius-md);
-            outline: none; transition: border-color 0.2s; background: #f8fafc;
+            outline: none; transition: border-color 0.2s, background 0.2s, color 0.2s;
+            background: #f8fafc;
+            color: var(--text-main);
         }
         input[type="text"]:focus { border-color: var(--primary); background: #fff; }
+
+        .paste-btn {
+            position: absolute;
+            right: 8px; /* Position to the right */
+            top: 50%;
+            transform: translateY(-50%);
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            color: #94a3b8; /* Default icon color */
+            padding: 8px;
+            border-radius: 8px;
+            transition: color 0.2s, background 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .paste-btn:hover {
+            color: var(--primary);
+            background: var(--border); /* Background on hover */
+        }
+        .paste-btn svg {
+            stroke: currentColor; /* Ensure SVG uses button color */
+        }
 
         .btn {
             display: inline-flex; justify-content: center; align-items: center; gap: 8px;
@@ -209,6 +356,15 @@
             .btn { width: auto; }
             .editor-header { flex-direction: row; justify-content: space-between; }
             .editor-actions { width: auto; }
+            .header { text-align: center; } /* Re-center header text on larger screens */
+            .header-wrapper {
+                flex-direction: row;
+                justify-content: space-between;
+                align-items: center;
+            }
+            .header-wrapper .header {
+                flex-grow: 1; /* Allow header to take available space */
+            }
         }
         
         .flex-center { display: flex; align-items: center; gap: 6px; }
@@ -244,9 +400,15 @@
     <div class="bg-decor"></div>
 
     <div class="container">
-        <!-- Header -->
-        <div class="header">
-            <h1>Repo <span>Extractor</span></h1>
+        <!-- Header & Theme Toggle -->
+        <div class="header-wrapper">
+            <div class="header">
+                <h1>Repo <span>Extractor</span></h1>
+            </div>
+            <button id="themeToggle" class="btn-theme-toggle" aria-label="Toggle dark/light theme">
+                <svg id="moonIcon" class="icon-dark" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+                <svg id="sunIcon" class="icon-light hidden" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+            </button>
         </div>
 
         <!-- Input Area -->
@@ -255,6 +417,9 @@
                 <div class="input-wrapper">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
                     <input type="text" id="repoUrl" placeholder="https://github.com/user/repo ...">
+                    <button type="button" id="pasteBtn" class="paste-btn" aria-label="Paste URL">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>
+                    </button>
                 </div>
                 <button id="fetchBtn" class="btn" onclick="startFetch()">
                     <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
@@ -400,7 +565,10 @@
         scrollArea.addEventListener('scroll', () => {
             if (isDragging) return;
             const maxScrollTop = scrollArea.scrollHeight - scrollArea.clientHeight;
-            if (maxScrollTop <= 0) return;
+            if (maxScrollTop <= 0) {
+                scrollThumb.style.transform = `translateY(0px)`;
+                return;
+            }
             const scrollPercentage = scrollArea.scrollTop / maxScrollTop;
             
             const maxThumbTop = scrollTrack.clientHeight - scrollThumb.clientHeight;
@@ -422,6 +590,8 @@
             
             const maxThumbTop = scrollTrack.clientHeight - scrollThumb.clientHeight;
             const maxScrollTop = scrollArea.scrollHeight - scrollArea.clientHeight;
+            if (maxScrollTop <= 0) return; // Prevent division by zero or erroneous movement
+            
             const movePercentage = deltaY / maxThumbTop;
             
             scrollArea.scrollTop = startScrollTop + (movePercentage * maxScrollTop);
@@ -450,6 +620,8 @@
             const deltaY = e.clientY - startY;
             const maxThumbTop = scrollTrack.clientHeight - scrollThumb.clientHeight;
             const maxScrollTop = scrollArea.scrollHeight - scrollArea.clientHeight;
+            if (maxScrollTop <= 0) return; // Prevent division by zero or erroneous movement
+            
             const movePercentage = deltaY / maxThumbTop;
             
             scrollArea.scrollTop = startScrollTop + (movePercentage * maxScrollTop);
@@ -515,27 +687,28 @@
 
         function saveToHistory(url) {
             let history = getHistory();
-            // Remove if already exists to move it to top
+            // Remove if exists to move to top
             history = history.filter(item => item !== url);
             history.unshift(url);
-            // Keep only last 10 items
-            if (history.length > 10) history = history.slice(0, 10);
+            // Keep only latest 5 items
+            history = history.slice(0, 5);
             localStorage.setItem('repoHistory', JSON.stringify(history));
             renderHistory();
         }
 
-        function deleteFromHistory(url, event) {
-            if(event) event.stopPropagation();
+        function removeFromHistory(urlToRemove) {
             let history = getHistory();
-            history = history.filter(item => item !== url);
+            history = history.filter(item => item !== urlToRemove);
             localStorage.setItem('repoHistory', JSON.stringify(history));
             renderHistory();
         }
 
         function renderHistory() {
-            const history = getHistory();
-            const historyCard = document.getElementById('historyCard');
             const historyList = document.getElementById('historyList');
+            const historyCard = document.getElementById('historyCard');
+            const history = getHistory();
+
+            historyList.innerHTML = ''; // Clear existing list
 
             if (history.length === 0) {
                 historyCard.classList.remove('show');
@@ -543,247 +716,112 @@
             }
 
             historyCard.classList.add('show');
-            historyList.innerHTML = '';
-
             history.forEach(url => {
                 const item = document.createElement('div');
-                item.className = 'history-item';
-
-                const link = document.createElement('div');
-                link.className = 'history-link';
-                link.textContent = url;
-                link.onclick = () => {
-                    document.getElementById('repoUrl').value = url;
-                };
-
-                const actions = document.createElement('div');
-                actions.className = 'history-actions';
-
-                const copyBtn = document.createElement('button');
-                copyBtn.className = 'icon-btn';
-                copyBtn.title = 'Salin Tautan';
-                copyBtn.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>';
-                copyBtn.onclick = (e) => {
-                    e.stopPropagation();
-                    copyToClipboard(url, 'Tautan disalin!');
-                };
-
-                const delBtn = document.createElement('button');
-                delBtn.className = 'icon-btn delete';
-                delBtn.title = 'Hapus dari Riwayat';
-                delBtn.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>';
-                delBtn.onclick = (e) => deleteFromHistory(url, e);
-
-                actions.appendChild(copyBtn);
-                actions.appendChild(delBtn);
-
-                item.appendChild(link);
-                item.appendChild(actions);
+                item.classList.add('history-item');
+                item.innerHTML = `
+                    <a href="#" class="history-link" data-url="${url}">${url}</a>
+                    <div class="history-actions">
+                        <button class="icon-btn copy-history-btn" data-url="${url}" aria-label="Salin tautan">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="8" y="8" width="12" height="12" rx="2" ry="2"></rect><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"></path></svg>
+                        </button>
+                        <button class="icon-btn delete-history-btn delete" data-url="${url}" aria-label="Hapus tautan">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                        </button>
+                    </div>
+                `;
                 historyList.appendChild(item);
+            });
+
+            // Add event listeners for history items
+            historyList.querySelectorAll('.history-link').forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    document.getElementById('repoUrl').value = link.dataset.url;
+                    startFetch();
+                });
+            });
+
+            historyList.querySelectorAll('.copy-history-btn').forEach(btn => {
+                btn.addEventListener('click', async () => {
+                    const urlToCopy = btn.dataset.url;
+                    try {
+                        await navigator.clipboard.writeText(urlToCopy);
+                        showToast('Tautan disalin!');
+                    } catch (err) {
+                        console.error('Gagal menyalin:', err);
+                        showToast('Gagal menyalin tautan.');
+                    }
+                });
+            });
+
+            historyList.querySelectorAll('.delete-history-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const urlToDelete = btn.dataset.url;
+                    removeFromHistory(urlToDelete);
+                    showToast('Tautan dihapus dari riwayat.');
+                });
             });
         }
 
-        // Initialize history on load
-        document.addEventListener('DOMContentLoaded', renderHistory);
+        // --- THEME TOGGLE LOGIC ---
+        const themeToggleBtn = document.getElementById('themeToggle');
+        const moonIcon = document.getElementById('moonIcon');
+        const sunIcon = document.getElementById('sunIcon');
 
-        function isIncluded(path) {
-            const p = path.toLowerCase();
-            if (EXCLUDED_DIRS.some(dir => p.includes(`/${dir}`) || p.startsWith(dir))) return false;
-            const match = p.match(/\.[0-9a-z]+$/);
-            if (match && BINARY_EXTENSIONS.includes(match[0])) return false;
-            return true;
-        }
+        function applyTheme(theme) {
+            document.body.className = theme; // "light-mode" or "dark-mode"
+            localStorage.setItem('theme', theme);
 
-        async function fetchWithProxy(url) {
-            const proxies = ['', 'https://api.allorigins.win/raw?url=', 'https://api.codetabs.com/v1/proxy?quest='];
-            for (let proxy of proxies) {
-                try {
-                    const res = await fetch(proxy ? proxy + encodeURIComponent(url) : url);
-                    if (res.ok) return await res.text();
-                } catch (e) { }
-            }
-            return "// ❌ Gagal mengunduh file ini karena masalah server.";
-        }
-
-        async function startFetch() {
-            const urlInput = document.getElementById('repoUrl').value;
-            const parsed = parseUrl(urlInput);
-            
-            if (!parsed || parsed.platform === 'unknown') {
-                alert('Tolong masukkan link GitHub atau Codeberg yang valid.');
-                return;
-            }
-
-            const btn = document.getElementById('fetchBtn');
-            const statusContainer = document.getElementById('statusContainer');
-            const outputContainer = document.getElementById('outputContainer');
-            
-            btn.disabled = true;
-            document.getElementById('btnText').textContent = 'Memproses...';
-            
-            outputContainer.style.display = 'none';
-            statusContainer.style.display = 'block';
-            
-            document.getElementById('progressBar').style.width = '0%';
-            document.getElementById('progressPercent').textContent = '0%';
-            rawCodeOnly = "";
-            fullOutputText = "";
-            
-            scrollThumb.style.transform = `translateY(0px)`;
-            scrollArea.scrollTop = 0;
-
-            try {
-                let apiUrl = parsed.platform === 'github' 
-                    ? `https://api.github.com/repos/${parsed.owner}/${parsed.repo}`
-                    : `https://codeberg.org/api/v1/repos/${parsed.owner}/${parsed.repo}`;
-                
-                let res = await fetch(apiUrl);
-                if (!res.ok) throw new Error("Repositori Private atau Tidak Ditemukan.");
-                const repoData = await res.json();
-                const branch = parsed.branch || repoData.default_branch || 'main';
-
-                res = await fetch(`${apiUrl}/git/trees/${branch}?recursive=1`);
-                const treeData = await res.json();
-
-                let files = treeData.tree
-                    .filter(i => i.type === 'blob' || (i.type !== 'tree' && i.mode !== '040000'))
-                    .filter(i => isIncluded(i.path))
-                    .sort((a, b) => a.path.localeCompare(b.path));
-
-                if (files.length === 0) throw new Error("Tidak ada file teks ditemukan.");
-
-                files = files.map(item => ({
-                    path: item.path,
-                    url: parsed.platform === 'github'
-                        ? `https://raw.githubusercontent.com/${parsed.owner}/${parsed.repo}/${branch}/${item.path}`
-                        : `https://codeberg.org/${parsed.owner}/${parsed.repo}/raw/branch/${branch}/${item.path}`
-                }));
-
-                document.getElementById('fileCountBadge').textContent = files.length;
-                
-                const total = files.length;
-                let completed = 0;
-                let displayArray = new Array(total);
-                let rawArray = new Array(total);
-                let currentIndex = 0;
-
-                async function worker() {
-                    while (currentIndex < total) {
-                        const idx = currentIndex++;
-                        const file = files[idx];
-                        
-                        document.getElementById('statusText').textContent = file.path;
-                        const text = await fetchWithProxy(file.url);
-                        
-                        let block = `\n// ` + `─`.repeat(76) + `\n`;
-                        block += `// 📄 PATH: ${file.path}\n`;
-                        block += `// ` + `─`.repeat(76) + `\n\n`;
-                        block += text + `\n`;
-                        displayArray[idx] = block;
-
-                        // Hanya Kode Mentah 100%
-                        rawArray[idx] = text + `\n\n`;
-                        
-                        completed++;
-                        let pct = Math.round((completed / total) * 100);
-                        document.getElementById('progressBar').style.width = `${pct}%`;
-                        document.getElementById('progressPercent').textContent = `${pct}%`;
-                    }
-                }
-
-                const workers = [];
-                for (let i = 0; i < Math.min(10, total); i++) workers.push(worker());
-                await Promise.all(workers);
-
-                let finalDisplay = `/**\n * 🚀 REPOSITORY SOURCE CODE\n * Source:   ${urlInput}\n * Platform: ${parsed.platform.toUpperCase()}\n * Files:    ${total}\n */\n\n`;
-                finalDisplay += `// --- DAFTAR ISI ---\n`;
-                files.forEach((f, index) => { finalDisplay += `// [${(index + 1).toString().padStart(3, '0')}] ${f.path}\n`; });
-                finalDisplay += `// ------------------\n\n`;
-                finalDisplay += displayArray.join('');
-
-                rawCodeOnly = rawArray.join('');
-                fullOutputText = finalDisplay;
-
-                document.getElementById('resultText').textContent = finalDisplay;
-                
-                const lines = rawCodeOnly.split('\n').length;
-                const sizeKb = (new Blob([rawCodeOnly]).size / 1024).toFixed(1);
-                document.getElementById('lineCount').textContent = `${lines.toLocaleString()} baris`;
-                document.getElementById('sizeCount').textContent = `${sizeKb} KB`;
-
-                statusContainer.style.display = 'none';
-                outputContainer.style.display = 'block';
-
-                saveToHistory(urlInput);
-
-                showToast('Ekstraksi Selesai!');
-
-            } catch (err) {
-                alert('Gagal: ' + err.message);
-                statusContainer.style.display = 'none';
-            } finally {
-                btn.disabled = false;
-                document.getElementById('btnText').textContent = 'Ekstrak Kode';
-            }
-        }
-
-        function copyToClipboard(text, successMessage) {
-            const fallbackCopy = () => {
-                const tempTa = document.createElement("textarea");
-                tempTa.value = text;
-                tempTa.style.position = "fixed";
-                tempTa.style.opacity = "0";
-                document.body.appendChild(tempTa);
-                tempTa.select();
-                document.execCommand('copy');
-                document.body.removeChild(tempTa);
-                showToast(successMessage);
-            };
-
-            if (navigator.clipboard && window.isSecureContext) {
-                navigator.clipboard.writeText(text)
-                    .then(() => showToast(successMessage))
-                    .catch(fallbackCopy);
+            if (theme === 'dark-mode') {
+                moonIcon.classList.add('hidden');
+                sunIcon.classList.remove('hidden');
             } else {
-                fallbackCopy();
+                moonIcon.classList.remove('hidden');
+                sunIcon.classList.add('hidden');
             }
         }
 
-        // FITUR SALIN SEMUA (termasuk header, daftar isi, dan path file)
-        function copyAllText() {
-            if (!fullOutputText) return;
-            copyToClipboard(fullOutputText, 'Semua teks di kotak kode tersalin!');
+        function toggleTheme() {
+            const currentTheme = localStorage.getItem('theme') || 'light-mode';
+            const newTheme = currentTheme === 'dark-mode' ? 'light-mode' : 'dark-mode';
+            applyTheme(newTheme);
         }
 
-        // FITUR SMART COPY (DENGAN RAM PROTECTOR)
-        function smartCopy() {
-            if (!rawCodeOnly) return;
-            
-            // Batas Keamanan: ~500KB (Mencegah HP Restart/OOM)
-            const MAX_SAFE_SIZE = 500000; 
-            
-            if (rawCodeOnly.length > MAX_SAFE_SIZE) {
-                showModal(); // Tampilkan pesan larangan
-                return;
+        // --- PASTE BUTTON LOGIC ---
+        const pasteBtn = document.getElementById('pasteBtn');
+        pasteBtn.addEventListener('click', async () => {
+            const repoUrlInput = document.getElementById('repoUrl');
+            try {
+                if (navigator.clipboard && navigator.clipboard.readText) {
+                    const text = await navigator.clipboard.readText();
+                    repoUrlInput.value = text;
+                    showToast('Teks berhasil ditempel!');
+                } else {
+                    // Fallback for browsers without direct readText API or insecure context
+                    repoUrlInput.focus();
+                    document.execCommand('paste');
+                    showToast('Coba tempel secara manual (Ctrl+V/Cmd+V) jika ini gagal.');
+                }
+            } catch (err) {
+                console.error('Gagal membaca dari clipboard:', err);
+                showToast('Gagal menempel. Berikan izin clipboard.');
             }
+        });
 
-            copyToClipboard(rawCodeOnly, 'Hanya Kode Murni yang Tersalin!');
-        }
+        // --- INITIALIZATION ON DOMContentLoaded ---
+        document.addEventListener('DOMContentLoaded', () => {
+            // Apply theme on load
+            const savedTheme = localStorage.getItem('theme') || 'light-mode'; // Default to light
+            applyTheme(savedTheme);
 
-        // FITUR DOWNLOAD (Aman untuk ukuran berapapun)
-        function downloadText() {
-            if (!rawCodeOnly) return;
-            const blob = new Blob([rawCodeOnly], { type: "text/plain;charset=utf-8" });
-            const link = document.createElement("a");
-            const parsed = parseUrl(document.getElementById('repoUrl').value);
-            link.href = URL.createObjectURL(blob);
-            link.download = parsed ? `${parsed.repo}-purecode.txt` : `purecode.txt`;
-            link.click();
-            URL.revokeObjectURL(link.href);
-            showToast('Mengunduh file...');
-        }
+            renderHistory();
+            
+            // Ensure the scrollbar thumb is correctly positioned on load
+            scrollArea.dispatchEvent(new Event('scroll'));
+        });
+
+        themeToggleBtn.addEventListener('click', toggleTheme);
     </script>
 </body>
 </html>
-
-
