@@ -1,24 +1,61 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="id" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src *; img-src 'self' data: https:;">
     <title>Acode Pro Repo Extractor (Safe Mode)</title>
     <style>
-        /* --- CSS NATIVE UNIVERSAL --- */
-        :root {
+        /* --- CSS VARIABLES DENGAN DUAL THEME --- */
+        :root, html[data-theme="light"] {
             --primary: #4f46e5;
             --primary-hover: #4338ca;
+            --primary-light: #e0e7ff;
             --bg-body: #f8fafc;
             --bg-card: #ffffff;
+            --bg-input: #f8fafc;
+            --bg-input-focus: #ffffff;
             --text-main: #0f172a;
             --text-muted: #64748b;
             --border: #e2e8f0;
             --editor-bg: #0d1117;
+            --editor-header-bg: #161b22;
+            --editor-border: #30363d;
             --editor-text: #c9d1d9;
             --radius-lg: 16px;
             --radius-md: 12px;
+            --radius-sm: 8px;
             --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
+            --decor-gradient: linear-gradient(135deg, #e0e7ff 0%, #ede9fe 100%);
+            --btn-secondary-bg: #f1f5f9;
+            --btn-secondary-text: #334155;
+            --btn-secondary-hover: #e2e8f0;
+            --history-item-bg: #f8fafc;
+            --modal-bg: #ffffff;
+        }
+
+        html[data-theme="dark"] {
+            --primary: #6366f1;
+            --primary-hover: #4f46e5;
+            --primary-light: #1e1b4b;
+            --bg-body: #090d16;
+            --bg-card: #111827;
+            --bg-input: #1a2234;
+            --bg-input-focus: #1f293d;
+            --text-main: #f1f5f9;
+            --text-muted: #94a3b8;
+            --border: #1f293d;
+            --editor-bg: #0b0f19;
+            --editor-header-bg: #131b2e;
+            --editor-border: #232f48;
+            --editor-text: #e2e8f0;
+            --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+            --decor-gradient: linear-gradient(135deg, #1e1b4b 0%, #0f172a 100%);
+            --btn-secondary-bg: #1e293b;
+            --btn-secondary-text: #e2e8f0;
+            --btn-secondary-hover: #334155;
+            --history-item-bg: #162032;
+            --modal-bg: #111827;
         }
 
         * {
@@ -26,6 +63,7 @@
             margin: 0;
             padding: 0;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
         }
 
         body {
@@ -34,11 +72,12 @@
             line-height: 1.5;
             padding: 20px;
             overflow-x: hidden;
+            min-height: 100vh;
         }
 
         .bg-decor {
             position: fixed; top: 0; left: 0; width: 100%; height: 300px;
-            background: linear-gradient(135deg, #e0e7ff 0%, #ede9fe 100%);
+            background: var(--decor-gradient);
             z-index: -1;
             border-bottom-left-radius: 40px;
             border-bottom-right-radius: 40px;
@@ -52,9 +91,36 @@
             gap: 24px;
         }
 
-        .header { text-align: center; margin-bottom: 10px; }
-        .header h1 { font-size: 2.2rem; font-weight: 800; color: #1e293b; margin-bottom: 8px; }
+        /* Top Bar & Theme Toggle */
+        .top-nav {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+        }
+
+        .theme-toggle-btn {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            color: var(--text-main);
+            border-radius: 50px;
+            padding: 8px 16px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: var(--shadow);
+            outline: none;
+        }
+        .theme-toggle-btn:hover {
+            border-color: var(--primary);
+        }
+
+        .header { text-align: center; margin-bottom: 5px; }
+        .header h1 { font-size: 2.2rem; font-weight: 800; color: var(--text-main); margin-bottom: 8px; }
         .header h1 span { color: var(--primary); }
+        .header p { color: var(--text-muted); font-size: 0.95rem; }
 
         .card {
             background: var(--bg-card);
@@ -66,18 +132,59 @@
         }
 
         .input-group { display: flex; flex-direction: column; gap: 12px; }
-        .input-wrapper { position: relative; flex: 1; }
-        .input-wrapper svg {
+        
+        .input-wrapper {
+            position: relative;
+            flex: 1;
+            display: flex;
+            align-items: center;
+        }
+        
+        .input-icon-left {
             position: absolute; left: 16px; top: 50%; transform: translateY(-50%);
-            color: #94a3b8; width: 20px; height: 20px;
+            color: var(--text-muted); width: 20px; height: 20px;
+            pointer-events: none;
         }
 
         input[type="text"] {
-            width: 100%; padding: 16px 16px 16px 44px; font-size: 1rem;
-            border: 2px solid var(--border); border-radius: var(--radius-md);
-            outline: none; transition: border-color 0.2s; background: #f8fafc;
+            width: 100%;
+            padding: 16px 85px 16px 44px;
+            font-size: 1rem;
+            border: 2px solid var(--border);
+            border-radius: var(--radius-md);
+            outline: none;
+            transition: border-color 0.2s, background-color 0.2s;
+            background: var(--bg-input);
+            color: var(--text-main);
         }
-        input[type="text"]:focus { border-color: var(--primary); background: #fff; }
+        input[type="text"]:focus {
+            border-color: var(--primary);
+            background: var(--bg-input-focus);
+        }
+
+        .paste-btn {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: var(--btn-secondary-bg);
+            border: 1px solid var(--border);
+            color: var(--text-main);
+            border-radius: var(--radius-sm);
+            padding: 8px 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            transition: all 0.2s ease;
+        }
+        .paste-btn:hover {
+            background: var(--primary);
+            color: #ffffff;
+            border-color: var(--primary);
+        }
 
         .btn {
             display: inline-flex; justify-content: center; align-items: center; gap: 8px;
@@ -91,28 +198,28 @@
         .btn:active { transform: scale(0.98); }
         .btn:disabled { opacity: 0.7; cursor: not-allowed; }
 
-        .btn-secondary { background: #f1f5f9; color: #334155; }
-        .btn-secondary:hover { background: #e2e8f0; }
+        .btn-secondary { background: var(--btn-secondary-bg); color: var(--btn-secondary-text); }
+        .btn-secondary:hover { background: var(--btn-secondary-hover); }
 
         .progress-area { display: none; }
         .progress-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-        .progress-title { font-weight: 600; font-size: 1.1rem; }
+        .progress-title { font-weight: 600; font-size: 1.1rem; color: var(--text-main); }
         .progress-sub { color: var(--text-muted); font-size: 0.9rem; margin-top: 4px; }
-        .progress-track { background: #e2e8f0; height: 12px; border-radius: 10px; overflow: hidden; }
+        .progress-track { background: var(--border); height: 12px; border-radius: 10px; overflow: hidden; }
         .progress-bar { background: linear-gradient(90deg, #3b82f6, #6366f1); height: 100%; width: 0%; transition: width 0.3s ease; }
         .spinner { animation: spin 1s linear infinite; }
         @keyframes spin { 100% { transform: rotate(360deg); } }
 
-        .editor-card { display: none; padding: 0; overflow: hidden; background: var(--editor-bg); position: relative; }
+        .editor-card { display: none; padding: 0; overflow: hidden; background: var(--editor-bg); position: relative; border-color: var(--editor-border); }
         .editor-header {
             display: flex; flex-direction: column; gap: 12px;
-            padding: 16px 20px; background: #161b22; border-bottom: 1px solid #30363d;
+            padding: 16px 20px; background: var(--editor-header-bg); border-bottom: 1px solid var(--editor-border);
         }
         .editor-title { color: #fff; display: flex; align-items: center; gap: 8px; font-weight: 600; }
         .editor-actions { display: flex; flex-wrap: wrap; gap: 10px; width: 100%; }
         .editor-actions .btn { flex: 1 1 150px; padding: 12px; font-size: 0.9rem; }
 
-        /* AREA TEKS NATIVE MENGGUNAKAN PRE (Sangat smooth) */
+        /* AREA TEKS NATIVE PRE */
         .content-container {
             position: relative;
             width: 100%;
@@ -133,657 +240,4 @@
         .code-scroll-area::-webkit-scrollbar { display: none; }
 
         pre {
-            margin: 0;
-            background: transparent;
-            color: var(--editor-text);
-            font-family: 'Courier New', Courier, monospace;
-            font-size: 13px;
-            line-height: 1.6;
-            white-space: pre; 
-            user-select: text; 
-        }
-
-        /* CUSTOM DRAGGABLE SLIDER (Kotak Scroll Besar) */
-        .custom-scrollbar-track {
-            position: absolute; top: 10px; bottom: 10px; right: 6px; width: 24px;
-            background: rgba(48, 54, 61, 0.3); border-radius: 12px; z-index: 10;
-        }
-        .custom-scrollbar-thumb {
-            position: absolute; top: 0; left: 2px; width: 20px; height: 60px;
-            background: rgba(139, 148, 158, 0.6); border-radius: 10px;
-            cursor: pointer; touch-action: none; transition: background 0.2s;
-        }
-        .custom-scrollbar-thumb:active, .custom-scrollbar-thumb.dragging { background: var(--primary); }
-        .custom-scrollbar-thumb::after {
-            content: ''; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            width: 10px; height: 2px; background: rgba(255,255,255,0.8);
-            box-shadow: 0 -4px 0 rgba(255,255,255,0.8), 0 4px 0 rgba(255,255,255,0.8);
-        }
-
-        .editor-footer {
-            display: flex; justify-content: space-between; padding: 12px 20px;
-            background: #161b22; border-top: 1px solid #30363d; color: #8b949e; font-size: 0.85rem; font-family: monospace;
-        }
-
-        .toast {
-            position: fixed; bottom: -100px; left: 50%; transform: translateX(-50%);
-            background: #334155; color: white; padding: 12px 24px;
-            border-radius: 50px; font-size: 0.9rem; font-weight: 500;
-            display: flex; align-items: center; gap: 8px;
-            transition: bottom 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            z-index: 1000; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
-            white-space: nowrap;
-        }
-        .toast.show { bottom: 30px; }
-
-        /* CUSTOM MODAL UNTUK PERINGATAN KEAMANAN */
-        .modal-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(4px);
-            display: flex; justify-content: center; align-items: center;
-            z-index: 2000; opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
-        }
-        .modal-overlay.show { opacity: 1; pointer-events: auto; }
-        .modal-box {
-            background: white; border-radius: 20px; width: 90%; max-width: 400px;
-            padding: 24px; text-align: center; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-            transform: scale(0.9); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        }
-        .modal-overlay.show .modal-box { transform: scale(1); }
-        .modal-icon {
-            width: 60px; height: 60px; background: #fee2e2; color: #ef4444;
-            border-radius: 50%; display: flex; justify-content: center; align-items: center;
-            margin: 0 auto 16px auto;
-        }
-        .modal-title { font-size: 1.25rem; font-weight: 700; color: #1e293b; margin-bottom: 8px; }
-        .modal-text { color: #64748b; font-size: 0.95rem; line-height: 1.5; margin-bottom: 24px; }
-        .modal-btn {
-            background: var(--primary); color: white; width: 100%;
-            padding: 12px; border-radius: 12px; border: none; font-weight: 600;
-            font-size: 1rem; cursor: pointer;
-        }
-        .modal-btn:active { transform: scale(0.98); }
-
-        @media (min-width: 640px) {
-            .input-group { flex-direction: row; }
-            .btn { width: auto; }
-            .editor-header { flex-direction: row; justify-content: space-between; }
-            .editor-actions { width: auto; }
-        }
-        
-        .flex-center { display: flex; align-items: center; gap: 6px; }
-
-        /* HISTORY STYLES */
-        .history-card { margin-top: 10px; display: none; }
-        .history-card.show { display: block; }
-        .history-header { font-weight: 600; margin-bottom: 12px; font-size: 1.1rem; color: #1e293b; }
-        .history-list { display: flex; flex-direction: column; gap: 8px; max-height: 200px; overflow-y: auto; }
-        .history-item {
-            display: flex; justify-content: space-between; align-items: center;
-            background: #f8fafc; padding: 10px 14px; border-radius: 8px; border: 1px solid #e2e8f0;
-            transition: all 0.2s ease;
-        }
-        .history-item:hover { border-color: var(--primary); box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-        .history-link {
-            font-size: 0.9rem; word-break: break-all; cursor: pointer;
-            color: var(--primary); flex: 1; margin-right: 10px; text-decoration: none;
-        }
-        .history-link:hover { text-decoration: underline; }
-        .history-actions { display: flex; gap: 8px; }
-        .icon-btn {
-            background: transparent; border: none; cursor: pointer; color: #64748b;
-            padding: 4px; display:flex; align-items:center; justify-content:center;
-            border-radius: 4px; transition: all 0.2s;
-        }
-        .icon-btn:hover { color: var(--primary); background: #e0e7ff; }
-        .icon-btn.delete:hover { color: #ef4444; background: #fee2e2; }
-    </style>
-</head>
-<body>
-
-    <div class="bg-decor"></div>
-
-    <div class="container">
-        <!-- Header -->
-        <div class="header">
-            <h1>Repo <span>Extractor</span></h1>
-        </div>
-
-        <!-- Input Area -->
-        <div class="card">
-            <div class="input-group">
-                <div class="input-wrapper">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
-                    <input type="text" id="repoUrl" placeholder="https://github.com/user/repo ...">
-                </div>
-                <button id="fetchBtn" class="btn" onclick="startFetch()">
-                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
-                    <span id="btnText">Ekstrak Kode</span>
-                </button>
-            </div>
-        </div>
-
-        <!-- History Area -->
-        <div class="card history-card" id="historyCard">
-            <div class="history-header">Riwayat Tautan</div>
-            <div class="history-list" id="historyList">
-                <!-- Items will be generated by JS -->
-            </div>
-        </div>
-
-        <!-- Progress Area -->
-        <div class="card progress-area" id="statusContainer">
-            <div class="progress-header">
-                <div style="display: flex; gap: 12px; align-items: center;">
-                    <svg class="spinner" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="2" x2="12" y2="6"></line><line x1="12" y1="18" x2="12" y2="22"></line><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line><line x1="2" y1="12" x2="6" y2="12"></line><line x1="18" y1="12" x2="22" y2="12"></line><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line></svg>
-                    <div>
-                        <div class="progress-title" id="statusTitle">Menghubungkan...</div>
-                        <div class="progress-sub" id="statusText">Mencari repositori</div>
-                    </div>
-                </div>
-                <div class="progress-title" id="progressPercent" style="color: var(--primary);">0%</div>
-            </div>
-            <div class="progress-track">
-                <div class="progress-bar" id="progressBar"></div>
-            </div>
-        </div>
-
-        <!-- Output Area -->
-        <div class="card editor-card" id="outputContainer">
-            <div class="editor-header">
-                <div class="editor-title">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-                    <span id="fileCountBadge">0</span> File Ditemukan
-                </div>
-                <div class="editor-actions">
-                    <button class="btn btn-secondary" onclick="downloadText()">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                        Simpan .txt
-                    </button>
-                    <button class="btn btn-secondary" onclick="copyAllText()">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="8" y="8" width="12" height="12" rx="2" ry="2"></rect><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"></path></svg>
-                        Salin Semua
-                    </button>
-                    <!-- Tombol Smart Copy (Kode Murni) -->
-                    <button class="btn" id="copyBtn" onclick="smartCopy()" style="background: #10b981;">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-                        Salin Kode Saja
-                    </button>
-                </div>
-            </div>
-            
-            <div class="content-container">
-                <!-- Area Teks Native (Bukan textarea) -->
-                <div class="code-scroll-area" id="scrollArea" tabindex="0" role="textbox" aria-readonly="true" aria-label="Hasil kode ekstraksi">
-                    <pre id="resultText">Hasil kode akan muncul di sini...</pre>
-                </div>
-                
-                <!-- Custom Slider (Kotak Geser) -->
-                <div class="custom-scrollbar-track" id="scrollTrack">
-                    <div class="custom-scrollbar-thumb" id="scrollThumb"></div>
-                </div>
-            </div>
-            
-            <div class="editor-footer">
-                <div class="flex-center">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="21" y1="10" x2="3" y2="10"></line><line x1="21" y1="6" x2="3" y2="6"></line><line x1="21" y1="14" x2="3" y2="14"></line><line x1="21" y1="18" x2="3" y2="18"></line></svg>
-                    <span id="lineCount">0 baris</span>
-                </div>
-                <div class="flex-center">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg>
-                    <span id="sizeCount">0 KB</span>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Toast UI -->
-    <div class="toast" id="toastMsg">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
-        <span id="toastText">Berhasil!</span>
-    </div>
-
-    <!-- Modal Peringatan Keamanan HP -->
-    <div class="modal-overlay" id="safetyModal">
-        <div class="modal-box">
-            <div class="modal-icon">
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
-            </div>
-            <h2 class="modal-title">Kode Terlalu Raksasa!</h2>
-            <p class="modal-text">Demi keamanan HP-mu, fitur "Salin" dinonaktifkan untuk kode ini karena ukurannya sangat besar dan dapat membuat HP hang/restart.<br><br>Gunakan tombol <b>Simpan .txt</b> untuk menyimpannya dengan sangat aman ke dalam perangkatmu.</p>
-            <button class="modal-btn" onclick="closeModal()">Saya Mengerti</button>
-        </div>
-    </div>
-
-    <script>
-        const BINARY_EXTENSIONS = [
-            '.png', '.jpg', '.jpeg', '.gif', '.svg', '.ico', '.webp', '.bmp', '.tiff',
-            '.mp3', '.mp4', '.wav', '.ogg', '.avi', '.mov', '.mkv',
-            '.zip', '.tar', '.gz', '.rar', '.7z', '.exe', '.dll', '.so', '.bin',
-            '.pdf', '.ttf', '.otf', '.woff', '.woff2', '.eot', '.pyc', '.sqlite3'
-        ];
-
-        const EXCLUDED_DIRS = ['.git/'];
-        let rawCodeOnly = "";
-        let fullOutputText = "";
-
-        // ----- LOGIKA CUSTOM SLIDER (DRAG UNTUK SCROLL) -----
-        const scrollArea = document.getElementById('scrollArea');
-        const scrollTrack = document.getElementById('scrollTrack');
-        const scrollThumb = document.getElementById('scrollThumb');
-        
-        let isDragging = false;
-        let startY, startScrollTop;
-
-        function selectResultText() {
-            const range = document.createRange();
-            const resultText = document.getElementById('resultText');
-            range.selectNodeContents(resultText);
-
-            const selection = window.getSelection();
-            selection.removeAllRanges();
-            selection.addRange(range);
-            scrollArea.focus({ preventScroll: true });
-        }
-
-        scrollArea.addEventListener('pointerdown', () => {
-            scrollArea.focus({ preventScroll: true });
-        });
-
-        scrollArea.addEventListener('keydown', (e) => {
-            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'a') {
-                e.preventDefault();
-                selectResultText();
-            }
-        });
-
-        scrollArea.addEventListener('scroll', () => {
-            if (isDragging) return;
-            const maxScrollTop = scrollArea.scrollHeight - scrollArea.clientHeight;
-            if (maxScrollTop <= 0) return;
-            const scrollPercentage = scrollArea.scrollTop / maxScrollTop;
-            
-            const maxThumbTop = scrollTrack.clientHeight - scrollThumb.clientHeight;
-            scrollThumb.style.transform = `translateY(${scrollPercentage * maxThumbTop}px)`;
-        });
-
-        scrollThumb.addEventListener('touchstart', (e) => {
-            isDragging = true;
-            scrollThumb.classList.add('dragging');
-            startY = e.touches[0].clientY;
-            startScrollTop = scrollArea.scrollTop;
-            e.preventDefault(); 
-        }, {passive: false});
-
-        document.addEventListener('touchmove', (e) => {
-            if (!isDragging) return;
-            e.preventDefault(); 
-            const deltaY = e.touches[0].clientY - startY;
-            
-            const maxThumbTop = scrollTrack.clientHeight - scrollThumb.clientHeight;
-            const maxScrollTop = scrollArea.scrollHeight - scrollArea.clientHeight;
-            const movePercentage = deltaY / maxThumbTop;
-            
-            scrollArea.scrollTop = startScrollTop + (movePercentage * maxScrollTop);
-            
-            let newY = (startScrollTop / maxScrollTop) * maxThumbTop + deltaY;
-            newY = Math.max(0, Math.min(newY, maxThumbTop));
-            scrollThumb.style.transform = `translateY(${newY}px)`;
-        }, {passive: false});
-
-        document.addEventListener('touchend', () => {
-            isDragging = false;
-            scrollThumb.classList.remove('dragging');
-        });
-
-        scrollThumb.addEventListener('mousedown', (e) => {
-            isDragging = true;
-            scrollThumb.classList.add('dragging');
-            startY = e.clientY;
-            startScrollTop = scrollArea.scrollTop;
-            e.preventDefault();
-        });
-
-        document.addEventListener('mousemove', (e) => {
-            if (!isDragging) return;
-            e.preventDefault();
-            const deltaY = e.clientY - startY;
-            const maxThumbTop = scrollTrack.clientHeight - scrollThumb.clientHeight;
-            const maxScrollTop = scrollArea.scrollHeight - scrollArea.clientHeight;
-            const movePercentage = deltaY / maxThumbTop;
-            
-            scrollArea.scrollTop = startScrollTop + (movePercentage * maxScrollTop);
-            
-            let newY = (startScrollTop / maxScrollTop) * maxThumbTop + deltaY;
-            newY = Math.max(0, Math.min(newY, maxThumbTop));
-            scrollThumb.style.transform = `translateY(${newY}px)`;
-        });
-
-        document.addEventListener('mouseup', () => {
-            isDragging = false;
-            scrollThumb.classList.remove('dragging');
-        });
-        // ----------------------------------------------------
-
-        function showToast(message) {
-            const toast = document.getElementById('toastMsg');
-            document.getElementById('toastText').textContent = message;
-            toast.classList.add('show');
-            setTimeout(() => toast.classList.remove('show'), 3000);
-        }
-
-        function showModal() {
-            document.getElementById('safetyModal').classList.add('show');
-        }
-
-        function closeModal() {
-            document.getElementById('safetyModal').classList.remove('show');
-        }
-
-        function parseUrl(urlStr) {
-            try {
-                urlStr = urlStr.trim().replace(/\/$/, "").replace(/\.git$/, "");
-                const url = new URL(urlStr);
-                const parts = url.pathname.split('/').filter(p => p);
-                if (parts.length >= 2) {
-                    const platform = url.hostname.includes('github') ? 'github' : url.hostname.includes('codeberg') ? 'codeberg' : 'unknown';
-                    let branch = null;
-                    if (platform === 'github' && parts.length >= 4 && parts[2] === 'tree') {
-                        branch = parts.slice(3).join('/');
-                    } else if (platform === 'codeberg' && parts.length >= 5 && parts[2] === 'src' && parts[3] === 'branch') {
-                        branch = parts.slice(4).join('/');
-                    }
-                    return {
-                        platform: platform,
-                        owner: parts[0],
-                        repo: parts[1],
-                        branch: branch
-                    };
-                }
-            } catch (e) { }
-            return null;
-        }
-
-        // HISTORY FUNCTIONS
-        function getHistory() {
-            try {
-                return JSON.parse(localStorage.getItem('repoHistory')) || [];
-            } catch (e) {
-                return [];
-            }
-        }
-
-        function saveToHistory(url) {
-            let history = getHistory();
-            // Remove if already exists to move it to top
-            history = history.filter(item => item !== url);
-            history.unshift(url);
-            // Keep only last 10 items
-            if (history.length > 10) history = history.slice(0, 10);
-            localStorage.setItem('repoHistory', JSON.stringify(history));
-            renderHistory();
-        }
-
-        function deleteFromHistory(url, event) {
-            if(event) event.stopPropagation();
-            let history = getHistory();
-            history = history.filter(item => item !== url);
-            localStorage.setItem('repoHistory', JSON.stringify(history));
-            renderHistory();
-        }
-
-        function renderHistory() {
-            const history = getHistory();
-            const historyCard = document.getElementById('historyCard');
-            const historyList = document.getElementById('historyList');
-
-            if (history.length === 0) {
-                historyCard.classList.remove('show');
-                return;
-            }
-
-            historyCard.classList.add('show');
-            historyList.innerHTML = '';
-
-            history.forEach(url => {
-                const item = document.createElement('div');
-                item.className = 'history-item';
-
-                const link = document.createElement('div');
-                link.className = 'history-link';
-                link.textContent = url;
-                link.onclick = () => {
-                    document.getElementById('repoUrl').value = url;
-                };
-
-                const actions = document.createElement('div');
-                actions.className = 'history-actions';
-
-                const copyBtn = document.createElement('button');
-                copyBtn.className = 'icon-btn';
-                copyBtn.title = 'Salin Tautan';
-                copyBtn.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>';
-                copyBtn.onclick = (e) => {
-                    e.stopPropagation();
-                    copyToClipboard(url, 'Tautan disalin!');
-                };
-
-                const delBtn = document.createElement('button');
-                delBtn.className = 'icon-btn delete';
-                delBtn.title = 'Hapus dari Riwayat';
-                delBtn.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>';
-                delBtn.onclick = (e) => deleteFromHistory(url, e);
-
-                actions.appendChild(copyBtn);
-                actions.appendChild(delBtn);
-
-                item.appendChild(link);
-                item.appendChild(actions);
-                historyList.appendChild(item);
-            });
-        }
-
-        // Initialize history on load
-        document.addEventListener('DOMContentLoaded', renderHistory);
-
-        function isIncluded(path) {
-            const p = path.toLowerCase();
-            if (EXCLUDED_DIRS.some(dir => p.includes(`/${dir}`) || p.startsWith(dir))) return false;
-            const match = p.match(/\.[0-9a-z]+$/);
-            if (match && BINARY_EXTENSIONS.includes(match[0])) return false;
-            return true;
-        }
-
-        async function fetchWithProxy(url) {
-            const proxies = ['', 'https://api.allorigins.win/raw?url=', 'https://api.codetabs.com/v1/proxy?quest='];
-            for (let proxy of proxies) {
-                try {
-                    const res = await fetch(proxy ? proxy + encodeURIComponent(url) : url);
-                    if (res.ok) return await res.text();
-                } catch (e) { }
-            }
-            return "// ❌ Gagal mengunduh file ini karena masalah server.";
-        }
-
-        async function startFetch() {
-            const urlInput = document.getElementById('repoUrl').value;
-            const parsed = parseUrl(urlInput);
-            
-            if (!parsed || parsed.platform === 'unknown') {
-                alert('Tolong masukkan link GitHub atau Codeberg yang valid.');
-                return;
-            }
-
-            const btn = document.getElementById('fetchBtn');
-            const statusContainer = document.getElementById('statusContainer');
-            const outputContainer = document.getElementById('outputContainer');
-            
-            btn.disabled = true;
-            document.getElementById('btnText').textContent = 'Memproses...';
-            
-            outputContainer.style.display = 'none';
-            statusContainer.style.display = 'block';
-            
-            document.getElementById('progressBar').style.width = '0%';
-            document.getElementById('progressPercent').textContent = '0%';
-            rawCodeOnly = "";
-            fullOutputText = "";
-            
-            scrollThumb.style.transform = `translateY(0px)`;
-            scrollArea.scrollTop = 0;
-
-            try {
-                let apiUrl = parsed.platform === 'github' 
-                    ? `https://api.github.com/repos/${parsed.owner}/${parsed.repo}`
-                    : `https://codeberg.org/api/v1/repos/${parsed.owner}/${parsed.repo}`;
-                
-                let res = await fetch(apiUrl);
-                if (!res.ok) throw new Error("Repositori Private atau Tidak Ditemukan.");
-                const repoData = await res.json();
-                const branch = parsed.branch || repoData.default_branch || 'main';
-
-                res = await fetch(`${apiUrl}/git/trees/${branch}?recursive=1`);
-                const treeData = await res.json();
-
-                let files = treeData.tree
-                    .filter(i => i.type === 'blob' || (i.type !== 'tree' && i.mode !== '040000'))
-                    .filter(i => isIncluded(i.path))
-                    .sort((a, b) => a.path.localeCompare(b.path));
-
-                if (files.length === 0) throw new Error("Tidak ada file teks ditemukan.");
-
-                files = files.map(item => ({
-                    path: item.path,
-                    url: parsed.platform === 'github'
-                        ? `https://raw.githubusercontent.com/${parsed.owner}/${parsed.repo}/${branch}/${item.path}`
-                        : `https://codeberg.org/${parsed.owner}/${parsed.repo}/raw/branch/${branch}/${item.path}`
-                }));
-
-                document.getElementById('fileCountBadge').textContent = files.length;
-                
-                const total = files.length;
-                let completed = 0;
-                let displayArray = new Array(total);
-                let rawArray = new Array(total);
-                let currentIndex = 0;
-
-                async function worker() {
-                    while (currentIndex < total) {
-                        const idx = currentIndex++;
-                        const file = files[idx];
-                        
-                        document.getElementById('statusText').textContent = file.path;
-                        const text = await fetchWithProxy(file.url);
-                        
-                        let block = `\n// ` + `─`.repeat(76) + `\n`;
-                        block += `// 📄 PATH: ${file.path}\n`;
-                        block += `// ` + `─`.repeat(76) + `\n\n`;
-                        block += text + `\n`;
-                        displayArray[idx] = block;
-
-                        // Hanya Kode Mentah 100%
-                        rawArray[idx] = text + `\n\n`;
-                        
-                        completed++;
-                        let pct = Math.round((completed / total) * 100);
-                        document.getElementById('progressBar').style.width = `${pct}%`;
-                        document.getElementById('progressPercent').textContent = `${pct}%`;
-                    }
-                }
-
-                const workers = [];
-                for (let i = 0; i < Math.min(10, total); i++) workers.push(worker());
-                await Promise.all(workers);
-
-                let finalDisplay = `/**\n * 🚀 REPOSITORY SOURCE CODE\n * Source:   ${urlInput}\n * Platform: ${parsed.platform.toUpperCase()}\n * Files:    ${total}\n */\n\n`;
-                finalDisplay += `// --- DAFTAR ISI ---\n`;
-                files.forEach((f, index) => { finalDisplay += `// [${(index + 1).toString().padStart(3, '0')}] ${f.path}\n`; });
-                finalDisplay += `// ------------------\n\n`;
-                finalDisplay += displayArray.join('');
-
-                rawCodeOnly = rawArray.join('');
-                fullOutputText = finalDisplay;
-
-                document.getElementById('resultText').textContent = finalDisplay;
-                
-                const lines = rawCodeOnly.split('\n').length;
-                const sizeKb = (new Blob([rawCodeOnly]).size / 1024).toFixed(1);
-                document.getElementById('lineCount').textContent = `${lines.toLocaleString()} baris`;
-                document.getElementById('sizeCount').textContent = `${sizeKb} KB`;
-
-                statusContainer.style.display = 'none';
-                outputContainer.style.display = 'block';
-
-                saveToHistory(urlInput);
-
-                showToast('Ekstraksi Selesai!');
-
-            } catch (err) {
-                alert('Gagal: ' + err.message);
-                statusContainer.style.display = 'none';
-            } finally {
-                btn.disabled = false;
-                document.getElementById('btnText').textContent = 'Ekstrak Kode';
-            }
-        }
-
-        function copyToClipboard(text, successMessage) {
-            const fallbackCopy = () => {
-                const tempTa = document.createElement("textarea");
-                tempTa.value = text;
-                tempTa.style.position = "fixed";
-                tempTa.style.opacity = "0";
-                document.body.appendChild(tempTa);
-                tempTa.select();
-                document.execCommand('copy');
-                document.body.removeChild(tempTa);
-                showToast(successMessage);
-            };
-
-            if (navigator.clipboard && window.isSecureContext) {
-                navigator.clipboard.writeText(text)
-                    .then(() => showToast(successMessage))
-                    .catch(fallbackCopy);
-            } else {
-                fallbackCopy();
-            }
-        }
-
-        // FITUR SALIN SEMUA (termasuk header, daftar isi, dan path file)
-        function copyAllText() {
-            if (!fullOutputText) return;
-            copyToClipboard(fullOutputText, 'Semua teks di kotak kode tersalin!');
-        }
-
-        // FITUR SMART COPY (DENGAN RAM PROTECTOR)
-        function smartCopy() {
-            if (!rawCodeOnly) return;
-            
-            // Batas Keamanan: ~500KB (Mencegah HP Restart/OOM)
-            const MAX_SAFE_SIZE = 500000; 
-            
-            if (rawCodeOnly.length > MAX_SAFE_SIZE) {
-                showModal(); // Tampilkan pesan larangan
-                return;
-            }
-
-            copyToClipboard(rawCodeOnly, 'Hanya Kode Murni yang Tersalin!');
-        }
-
-        // FITUR DOWNLOAD (Aman untuk ukuran berapapun)
-        function downloadText() {
-            if (!rawCodeOnly) return;
-            const blob = new Blob([rawCodeOnly], { type: "text/plain;charset=utf-8" });
-            const link = document.createElement("a");
-            const parsed = parseUrl(document.getElementById('repoUrl').value);
-            link.href = URL.createObjectURL(blob);
-            link.download = parsed ? `${parsed.repo}-purecode.txt` : `purecode.txt`;
-            link.click();
-            URL.revokeObjectURL(link.href);
-            showToast('Mengunduh file...');
-        }
-    </script>
-</body>
-</html>
-
-
+            margin
