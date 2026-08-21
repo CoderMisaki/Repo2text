@@ -584,7 +584,14 @@
         }
 
         // Initialize history on load
-        document.addEventListener('DOMContentLoaded', renderHistory);
+        document.addEventListener('DOMContentLoaded', () => {
+            renderHistory();
+            // Check clipboard API support and hide paste button if not available
+            const pasteBtn = document.getElementById('pasteBtn');
+            if (!navigator.clipboard || !navigator.clipboard.readText) {
+                pasteBtn.style.display = 'none';
+            }
+        });
 
         function isIncluded(path) {
             const p = path.toLowerCase();
