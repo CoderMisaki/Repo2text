@@ -3,7 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Acode Pro Repo Extractor (Safe Mode)</title>
+    <title>Acode Pro Repo & ZIP Extractor</title>
+    <!-- JSZip Library CDN untuk membaca file ZIP secara akurat -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
         /* --- CSS NATIVE UNIVERSAL --- */
         :root {
@@ -65,6 +67,37 @@
             transition: transform 0.3s ease, opacity 0.3s ease;
         }
 
+        /* TAB NAVIGATION */
+        .tab-group {
+            display: flex;
+            gap: 8px;
+            background: #f1f5f9;
+            padding: 6px;
+            border-radius: var(--radius-md);
+            margin-bottom: 16px;
+        }
+        .tab-btn {
+            flex: 1;
+            padding: 10px 16px;
+            border: none;
+            background: transparent;
+            font-weight: 600;
+            font-size: 0.95rem;
+            color: var(--text-muted);
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.2s ease;
+        }
+        .tab-btn.active {
+            background: #ffffff;
+            color: var(--primary);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.06);
+        }
+
         .input-group { display: flex; flex-direction: column; gap: 12px; }
         .input-wrapper { position: relative; flex: 1; }
         .input-wrapper svg {
@@ -78,6 +111,28 @@
             outline: none; transition: border-color 0.2s; background: #f8fafc;
         }
         input[type="text"]:focus { border-color: var(--primary); background: #fff; }
+
+        /* DROP ZONE UNTUK FILE ZIP */
+        .drop-zone {
+            border: 2px dashed var(--border);
+            border-radius: var(--radius-md);
+            padding: 30px 20px;
+            text-align: center;
+            background: #f8fafc;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+        .drop-zone:hover, .drop-zone.dragover {
+            border-color: var(--primary);
+            background: #eef2ff;
+        }
+        .drop-zone svg { color: var(--primary); }
+        .drop-zone-text { font-size: 1rem; font-weight: 600; color: #334155; }
+        .drop-zone-sub { font-size: 0.85rem; color: var(--text-muted); }
 
         .btn {
             display: inline-flex; justify-content: center; align-items: center; gap: 8px;
@@ -97,9 +152,9 @@
         .progress-area { display: none; }
         .progress-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
         .progress-title { font-weight: 600; font-size: 1.1rem; }
-        .progress-sub { color: var(--text-muted); font-size: 0.9rem; margin-top: 4px; }
+        .progress-sub { color: var(--text-muted); font-size: 0.9rem; margin-top: 4px; word-break: break-all; }
         .progress-track { background: #e2e8f0; height: 12px; border-radius: 10px; overflow: hidden; }
-        .progress-bar { background: linear-gradient(90deg, #3b82f6, #6366f1); height: 100%; width: 0%; transition: width 0.3s ease; }
+        .progress-bar { background: linear-gradient(90deg, #3b82f6, #6366f1); height: 100%; width: 0%; transition: width 0.2s ease; }
         .spinner { animation: spin 1s linear infinite; }
         @keyframes spin { 100% { transform: rotate(360deg); } }
 
@@ -112,7 +167,7 @@
         .editor-actions { display: flex; flex-wrap: wrap; gap: 10px; width: 100%; }
         .editor-actions .btn { flex: 1 1 150px; padding: 12px; font-size: 0.9rem; }
 
-        /* AREA TEKS NATIVE MENGGUNAKAN PRE (Sangat smooth) */
+        /* AREA TEKS NATIVE MENGGUNAKAN PRE */
         .content-container {
             position: relative;
             width: 100%;
@@ -143,7 +198,7 @@
             user-select: text; 
         }
 
-        /* CUSTOM DRAGGABLE SLIDER (Kotak Scroll Besar) */
+        /* CUSTOM DRAGGABLE SLIDER */
         .custom-scrollbar-track {
             position: absolute; top: 10px; bottom: 10px; right: 6px; width: 24px;
             background: rgba(48, 54, 61, 0.3); border-radius: 12px; z-index: 10;
@@ -176,7 +231,6 @@
         }
         .toast.show { bottom: 30px; }
 
-        /* CUSTOM MODAL UNTUK PERINGATAN KEAMANAN */
         .modal-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(4px);
@@ -246,12 +300,24 @@
     <div class="container">
         <!-- Header -->
         <div class="header">
-            <h1>Repo <span>Extractor</span></h1>
+            <h1>Repo & ZIP <span>Extractor</span></h1>
         </div>
 
-        <!-- Input Area -->
+        <!-- Input & Mode Selection Area -->
         <div class="card">
-            <div class="input-group">
+            <div class="tab-group">
+                <button class="tab-btn active" id="tabUrl" onclick="switchMode('url')">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+                    URL Repositori
+                </button>
+                <button class="tab-btn" id="tabZip" onclick="switchMode('zip')">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="21 8 21 21 3 21 3 8"></polyline><rect x="1" y="3" width="22" height="5"></rect><line x1="10" y1="12" x2="14" y2="12"></line></svg>
+                    Upload File ZIP
+                </button>
+            </div>
+
+            <!-- Tab 1: URL Input -->
+            <div id="urlSection" class="input-group">
                 <div class="input-wrapper">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
                     <input type="text" id="repoUrl" placeholder="https://github.com/user/repo ...">
@@ -261,14 +327,22 @@
                     <span id="btnText">Ekstrak Kode</span>
                 </button>
             </div>
+
+            <!-- Tab 2: ZIP Upload Input -->
+            <div id="zipSection" style="display: none;">
+                <input type="file" id="zipFileInput" accept=".zip,application/zip,application/x-zip-compressed" style="display: none;" onchange="handleZipSelect(event)">
+                <div class="drop-zone" id="dropZone" onclick="document.getElementById('zipFileInput').click()">
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                    <div class="drop-zone-text">Klik untuk pilih file ZIP atau seret ke sini</div>
+                    <div class="drop-zone-sub">Mendukung arsip proyek besar bertingkat (Semua file teks akan diekstrak 100%)</div>
+                </div>
+            </div>
         </div>
 
         <!-- History Area -->
         <div class="card history-card" id="historyCard">
             <div class="history-header">Riwayat Tautan</div>
-            <div class="history-list" id="historyList">
-                <!-- Items will be generated by JS -->
-            </div>
+            <div class="history-list" id="historyList"></div>
         </div>
 
         <!-- Progress Area -->
@@ -278,7 +352,7 @@
                     <svg class="spinner" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="2" x2="12" y2="6"></line><line x1="12" y1="18" x2="12" y2="22"></line><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line><line x1="2" y1="12" x2="6" y2="12"></line><line x1="18" y1="12" x2="22" y2="12"></line><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line></svg>
                     <div>
                         <div class="progress-title" id="statusTitle">Menghubungkan...</div>
-                        <div class="progress-sub" id="statusText">Mencari repositori</div>
+                        <div class="progress-sub" id="statusText">Mencari file</div>
                     </div>
                 </div>
                 <div class="progress-title" id="progressPercent" style="color: var(--primary);">0%</div>
@@ -304,7 +378,6 @@
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="8" y="8" width="12" height="12" rx="2" ry="2"></rect><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"></path></svg>
                         Salin Semua
                     </button>
-                    <!-- Tombol Smart Copy (Kode Murni) -->
                     <button class="btn" id="copyBtn" onclick="smartCopy()" style="background: #10b981;">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
                         Salin Kode Saja
@@ -313,12 +386,10 @@
             </div>
             
             <div class="content-container">
-                <!-- Area Teks Native (Bukan textarea) -->
                 <div class="code-scroll-area" id="scrollArea" tabindex="0" role="textbox" aria-readonly="true" aria-label="Hasil kode ekstraksi">
                     <pre id="resultText">Hasil kode akan muncul di sini...</pre>
                 </div>
                 
-                <!-- Custom Slider (Kotak Geser) -->
                 <div class="custom-scrollbar-track" id="scrollTrack">
                     <div class="custom-scrollbar-thumb" id="scrollThumb"></div>
                 </div>
@@ -360,18 +431,76 @@
             '.png', '.jpg', '.jpeg', '.gif', '.svg', '.ico', '.webp', '.bmp', '.tiff',
             '.mp3', '.mp4', '.wav', '.ogg', '.avi', '.mov', '.mkv',
             '.zip', '.tar', '.gz', '.rar', '.7z', '.exe', '.dll', '.so', '.bin',
-            '.pdf', '.ttf', '.otf', '.woff', '.woff2', '.eot', '.pyc', '.sqlite3'
+            '.pdf', '.ttf', '.otf', '.woff', '.woff2', '.eot', '.pyc', '.sqlite3',
+            '.class', '.jar', '.apk', '.iso', '.dmg', '.ds_store'
         ];
 
-        const EXCLUDED_DIRS = ['.git/'];
+        const EXCLUDED_DIRS = ['.git/', '__macosx/', '.idea/', '.vscode/'];
         let rawCodeOnly = "";
         let fullOutputText = "";
+        let currentSourceName = "code";
 
-        // ----- LOGIKA CUSTOM SLIDER (DRAG UNTUK SCROLL) -----
+        // MODE TAB SWITCHER
+        function switchMode(mode) {
+            const tabUrl = document.getElementById('tabUrl');
+            const tabZip = document.getElementById('tabZip');
+            const urlSec = document.getElementById('urlSection');
+            const zipSec = document.getElementById('zipSection');
+            const historyCard = document.getElementById('historyCard');
+
+            if (mode === 'url') {
+                tabUrl.classList.add('active');
+                tabZip.classList.remove('active');
+                urlSec.style.display = 'flex';
+                zipSec.style.display = 'none';
+                renderHistory();
+            } else {
+                tabZip.classList.add('active');
+                tabUrl.classList.remove('active');
+                urlSec.style.display = 'none';
+                zipSec.style.display = 'block';
+                historyCard.classList.remove('show');
+            }
+        }
+
+        // DRAG AND DROP SETUP
+        const dropZone = document.getElementById('dropZone');
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropZone.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                dropZone.classList.add('dragover');
+            }, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                dropZone.classList.remove('dragover');
+            }, false);
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            if (files && files.length > 0) {
+                processZipFile(files[0]);
+            }
+        });
+
+        function handleZipSelect(event) {
+            const file = event.target.files[0];
+            if (file) {
+                processZipFile(file);
+            }
+            event.target.value = ''; // Reset input agar file sama bisa diupload ulang
+        }
+
+        // LOGIKA CUSTOM SLIDER
         const scrollArea = document.getElementById('scrollArea');
         const scrollTrack = document.getElementById('scrollTrack');
         const scrollThumb = document.getElementById('scrollThumb');
-        
         let isDragging = false;
         let startY, startScrollTop;
 
@@ -379,17 +508,13 @@
             const range = document.createRange();
             const resultText = document.getElementById('resultText');
             range.selectNodeContents(resultText);
-
             const selection = window.getSelection();
             selection.removeAllRanges();
             selection.addRange(range);
             scrollArea.focus({ preventScroll: true });
         }
 
-        scrollArea.addEventListener('pointerdown', () => {
-            scrollArea.focus({ preventScroll: true });
-        });
-
+        scrollArea.addEventListener('pointerdown', () => scrollArea.focus({ preventScroll: true }));
         scrollArea.addEventListener('keydown', (e) => {
             if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'a') {
                 e.preventDefault();
@@ -402,7 +527,6 @@
             const maxScrollTop = scrollArea.scrollHeight - scrollArea.clientHeight;
             if (maxScrollTop <= 0) return;
             const scrollPercentage = scrollArea.scrollTop / maxScrollTop;
-            
             const maxThumbTop = scrollTrack.clientHeight - scrollThumb.clientHeight;
             scrollThumb.style.transform = `translateY(${scrollPercentage * maxThumbTop}px)`;
         });
@@ -419,13 +543,10 @@
             if (!isDragging) return;
             e.preventDefault(); 
             const deltaY = e.touches[0].clientY - startY;
-            
             const maxThumbTop = scrollTrack.clientHeight - scrollThumb.clientHeight;
             const maxScrollTop = scrollArea.scrollHeight - scrollArea.clientHeight;
             const movePercentage = deltaY / maxThumbTop;
-            
             scrollArea.scrollTop = startScrollTop + (movePercentage * maxScrollTop);
-            
             let newY = (startScrollTop / maxScrollTop) * maxThumbTop + deltaY;
             newY = Math.max(0, Math.min(newY, maxThumbTop));
             scrollThumb.style.transform = `translateY(${newY}px)`;
@@ -451,9 +572,7 @@
             const maxThumbTop = scrollTrack.clientHeight - scrollThumb.clientHeight;
             const maxScrollTop = scrollArea.scrollHeight - scrollArea.clientHeight;
             const movePercentage = deltaY / maxThumbTop;
-            
             scrollArea.scrollTop = startScrollTop + (movePercentage * maxScrollTop);
-            
             let newY = (startScrollTop / maxScrollTop) * maxThumbTop + deltaY;
             newY = Math.max(0, Math.min(newY, maxThumbTop));
             scrollThumb.style.transform = `translateY(${newY}px)`;
@@ -463,7 +582,6 @@
             isDragging = false;
             scrollThumb.classList.remove('dragging');
         });
-        // ----------------------------------------------------
 
         function showToast(message) {
             const toast = document.getElementById('toastMsg');
@@ -472,13 +590,8 @@
             setTimeout(() => toast.classList.remove('show'), 3000);
         }
 
-        function showModal() {
-            document.getElementById('safetyModal').classList.add('show');
-        }
-
-        function closeModal() {
-            document.getElementById('safetyModal').classList.remove('show');
-        }
+        function showModal() { document.getElementById('safetyModal').classList.add('show'); }
+        function closeModal() { document.getElementById('safetyModal').classList.remove('show'); }
 
         function parseUrl(urlStr) {
             try {
@@ -493,107 +606,124 @@
                     } else if (platform === 'codeberg' && parts.length >= 5 && parts[2] === 'src' && parts[3] === 'branch') {
                         branch = parts.slice(4).join('/');
                     }
-                    return {
-                        platform: platform,
-                        owner: parts[0],
-                        repo: parts[1],
-                        branch: branch
-                    };
+                    return { platform, owner: parts[0], repo: parts[1], branch };
                 }
             } catch (e) { }
             return null;
         }
-
-        // HISTORY FUNCTIONS
-        function getHistory() {
-            try {
-                return JSON.parse(localStorage.getItem('repoHistory')) || [];
-            } catch (e) {
-                return [];
-            }
-        }
-
-        function saveToHistory(url) {
-            let history = getHistory();
-            // Remove if already exists to move it to top
-            history = history.filter(item => item !== url);
-            history.unshift(url);
-            // Keep only last 10 items
-            if (history.length > 10) history = history.slice(0, 10);
-            localStorage.setItem('repoHistory', JSON.stringify(history));
-            renderHistory();
-        }
-
-        function deleteFromHistory(url, event) {
-            if(event) event.stopPropagation();
-            let history = getHistory();
-            history = history.filter(item => item !== url);
-            localStorage.setItem('repoHistory', JSON.stringify(history));
-            renderHistory();
-        }
-
-        function renderHistory() {
-            const history = getHistory();
-            const historyCard = document.getElementById('historyCard');
-            const historyList = document.getElementById('historyList');
-
-            if (history.length === 0) {
-                historyCard.classList.remove('show');
-                return;
-            }
-
-            historyCard.classList.add('show');
-            historyList.innerHTML = '';
-
-            history.forEach(url => {
-                const item = document.createElement('div');
-                item.className = 'history-item';
-
-                const link = document.createElement('div');
-                link.className = 'history-link';
-                link.textContent = url;
-                link.onclick = () => {
-                    document.getElementById('repoUrl').value = url;
-                };
-
-                const actions = document.createElement('div');
-                actions.className = 'history-actions';
-
-                const copyBtn = document.createElement('button');
-                copyBtn.className = 'icon-btn';
-                copyBtn.title = 'Salin Tautan';
-                copyBtn.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>';
-                copyBtn.onclick = (e) => {
-                    e.stopPropagation();
-                    copyToClipboard(url, 'Tautan disalin!');
-                };
-
-                const delBtn = document.createElement('button');
-                delBtn.className = 'icon-btn delete';
-                delBtn.title = 'Hapus dari Riwayat';
-                delBtn.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>';
-                delBtn.onclick = (e) => deleteFromHistory(url, e);
-
-                actions.appendChild(copyBtn);
-                actions.appendChild(delBtn);
-
-                item.appendChild(link);
-                item.appendChild(actions);
-                historyList.appendChild(item);
-            });
-        }
-
-        // Initialize history on load
-        document.addEventListener('DOMContentLoaded', renderHistory);
 
         function isIncluded(path) {
             const p = path.toLowerCase();
             if (EXCLUDED_DIRS.some(dir => p.includes(`/${dir}`) || p.startsWith(dir))) return false;
             const match = p.match(/\.[0-9a-z]+$/);
             if (match && BINARY_EXTENSIONS.includes(match[0])) return false;
+            if (p.endsWith('/')) return false; // Abaikan direktori murni
             return true;
         }
 
+        // ==========================================
+        // FITUR EKSTRAKSI FILE ZIP (100% AKURAT & REKURSIF)
+        // ==========================================
+        async function processZipFile(file) {
+            if (!file.name.toLowerCase().endsWith('.zip')) {
+                alert('Silakan pilih berkas yang berformat .ZIP valid.');
+                return;
+            }
+
+            const statusContainer = document.getElementById('statusContainer');
+            const outputContainer = document.getElementById('outputContainer');
+            const progressBar = document.getElementById('progressBar');
+            const progressPercent = document.getElementById('progressPercent');
+            const statusTitle = document.getElementById('statusTitle');
+            const statusText = document.getElementById('statusText');
+
+            outputContainer.style.display = 'none';
+            statusContainer.style.display = 'block';
+            statusTitle.textContent = 'Membaca ZIP...';
+            statusText.textContent = file.name;
+            progressBar.style.width = '0%';
+            progressPercent.textContent = '0%';
+            
+            rawCodeOnly = "";
+            fullOutputText = "";
+            currentSourceName = file.name.replace(/\.zip$/i, '');
+
+            try {
+                const zip = new JSZip();
+                const loadedZip = await zip.loadAsync(file);
+                
+                // Ambil semua entri file dan sortir secara alfabetis path-nya
+                let validEntries = [];
+                loadedZip.forEach((relativePath, zipEntry) => {
+                    if (!zipEntry.dir && isIncluded(relativePath)) {
+                        validEntries.push({ path: relativePath, entry: zipEntry });
+                    }
+                });
+
+                validEntries.sort((a, b) => a.path.localeCompare(b.path));
+
+                const total = validEntries.length;
+                if (total === 0) {
+                    throw new Error("Tidak ditemukan file teks yang dapat dibaca di dalam ZIP.");
+                }
+
+                document.getElementById('fileCountBadge').textContent = total;
+                statusTitle.textContent = 'Mengekstrak Konten...';
+
+                let displayArray = [];
+                let rawArray = [];
+
+                for (let i = 0; i < total; i++) {
+                    const item = validEntries[i];
+                    statusText.textContent = item.path;
+
+                    // Baca file sebagai teks UTF-8 murni
+                    const text = await item.entry.async("string");
+
+                    let block = `\n// ` + `─`.repeat(76) + `\n`;
+                    block += `// 📄 PATH: ${item.path}\n`;
+                    block += `// ` + `─`.repeat(76) + `\n\n`;
+                    block += text + `\n`;
+                    displayArray.push(block);
+
+                    rawArray.push(text + `\n\n`);
+
+                    let pct = Math.round(((i + 1) / total) * 100);
+                    progressBar.style.width = `${pct}%`;
+                    progressPercent.textContent = `${pct}%`;
+                }
+
+                let finalDisplay = `/**\n * 📦 ARCHIVE SOURCE CODE\n * File:     ${file.name}\n * Total:    ${total} File\n */\n\n`;
+                finalDisplay += `// --- DAFTAR ISI ---\n`;
+                validEntries.forEach((f, idx) => {
+                    finalDisplay += `// [${(idx + 1).toString().padStart(3, '0')}] ${f.path}\n`;
+                });
+                finalDisplay += `// ------------------\n\n`;
+                finalDisplay += displayArray.join('');
+
+                rawCodeOnly = rawArray.join('');
+                fullOutputText = finalDisplay;
+
+                document.getElementById('resultText').textContent = finalDisplay;
+                
+                const lines = rawCodeOnly.split('\n').length;
+                const sizeKb = (new Blob([rawCodeOnly]).size / 1024).toFixed(1);
+                document.getElementById('lineCount').textContent = `${lines.toLocaleString()} baris`;
+                document.getElementById('sizeCount').textContent = `${sizeKb} KB`;
+
+                statusContainer.style.display = 'none';
+                outputContainer.style.display = 'block';
+                showToast('Ekstraksi ZIP Selesai!');
+
+            } catch (err) {
+                alert('Gagal mengekstrak ZIP: ' + err.message);
+                statusContainer.style.display = 'none';
+            }
+        }
+
+        // ==========================================
+        // EKSTRAKSI GITHUB / CODEBERG URL
+        // ==========================================
         async function fetchWithProxy(url) {
             const proxies = ['', 'https://api.allorigins.win/raw?url=', 'https://api.codetabs.com/v1/proxy?quest='];
             for (let proxy of proxies) {
@@ -628,9 +758,7 @@
             document.getElementById('progressPercent').textContent = '0%';
             rawCodeOnly = "";
             fullOutputText = "";
-            
-            scrollThumb.style.transform = `translateY(0px)`;
-            scrollArea.scrollTop = 0;
+            currentSourceName = parsed.repo;
 
             try {
                 let apiUrl = parsed.platform === 'github' 
@@ -681,7 +809,6 @@
                         block += text + `\n`;
                         displayArray[idx] = block;
 
-                        // Hanya Kode Mentah 100%
                         rawArray[idx] = text + `\n\n`;
                         
                         completed++;
@@ -715,7 +842,6 @@
                 outputContainer.style.display = 'block';
 
                 saveToHistory(urlInput);
-
                 showToast('Ekstraksi Selesai!');
 
             } catch (err) {
@@ -726,6 +852,77 @@
                 document.getElementById('btnText').textContent = 'Ekstrak Kode';
             }
         }
+
+        // HISTORY FUNCTIONS
+        function getHistory() {
+            try { return JSON.parse(localStorage.getItem('repoHistory')) || []; } 
+            catch (e) { return []; }
+        }
+
+        function saveToHistory(url) {
+            let history = getHistory().filter(item => item !== url);
+            history.unshift(url);
+            if (history.length > 10) history = history.slice(0, 10);
+            localStorage.setItem('repoHistory', JSON.stringify(history));
+            renderHistory();
+        }
+
+        function deleteFromHistory(url, event) {
+            if(event) event.stopPropagation();
+            let history = getHistory().filter(item => item !== url);
+            localStorage.setItem('repoHistory', JSON.stringify(history));
+            renderHistory();
+        }
+
+        function renderHistory() {
+            const history = getHistory();
+            const historyCard = document.getElementById('historyCard');
+            const historyList = document.getElementById('historyList');
+
+            if (history.length === 0 || document.getElementById('tabZip').classList.contains('active')) {
+                historyCard.classList.remove('show');
+                return;
+            }
+
+            historyCard.classList.add('show');
+            historyList.innerHTML = '';
+
+            history.forEach(url => {
+                const item = document.createElement('div');
+                item.className = 'history-item';
+
+                const link = document.createElement('div');
+                link.className = 'history-link';
+                link.textContent = url;
+                link.onclick = () => { document.getElementById('repoUrl').value = url; };
+
+                const actions = document.createElement('div');
+                actions.className = 'history-actions';
+
+                const copyBtn = document.createElement('button');
+                copyBtn.className = 'icon-btn';
+                copyBtn.title = 'Salin Tautan';
+                copyBtn.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>';
+                copyBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    copyToClipboard(url, 'Tautan disalin!');
+                };
+
+                const delBtn = document.createElement('button');
+                delBtn.className = 'icon-btn delete';
+                delBtn.title = 'Hapus dari Riwayat';
+                delBtn.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>';
+                delBtn.onclick = (e) => deleteFromHistory(url, e);
+
+                actions.appendChild(copyBtn);
+                actions.appendChild(delBtn);
+                item.appendChild(link);
+                item.appendChild(actions);
+                historyList.appendChild(item);
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', renderHistory);
 
         function copyToClipboard(text, successMessage) {
             const fallbackCopy = () => {
@@ -749,35 +946,27 @@
             }
         }
 
-        // FITUR SALIN SEMUA (termasuk header, daftar isi, dan path file)
         function copyAllText() {
             if (!fullOutputText) return;
             copyToClipboard(fullOutputText, 'Semua teks di kotak kode tersalin!');
         }
 
-        // FITUR SMART COPY (DENGAN RAM PROTECTOR)
         function smartCopy() {
             if (!rawCodeOnly) return;
-            
-            // Batas Keamanan: ~500KB (Mencegah HP Restart/OOM)
             const MAX_SAFE_SIZE = 500000; 
-            
             if (rawCodeOnly.length > MAX_SAFE_SIZE) {
-                showModal(); // Tampilkan pesan larangan
+                showModal();
                 return;
             }
-
             copyToClipboard(rawCodeOnly, 'Hanya Kode Murni yang Tersalin!');
         }
 
-        // FITUR DOWNLOAD (Aman untuk ukuran berapapun)
         function downloadText() {
             if (!rawCodeOnly) return;
             const blob = new Blob([rawCodeOnly], { type: "text/plain;charset=utf-8" });
             const link = document.createElement("a");
-            const parsed = parseUrl(document.getElementById('repoUrl').value);
             link.href = URL.createObjectURL(blob);
-            link.download = parsed ? `${parsed.repo}-purecode.txt` : `purecode.txt`;
+            link.download = `${currentSourceName}-purecode.txt`;
             link.click();
             URL.revokeObjectURL(link.href);
             showToast('Mengunduh file...');
@@ -785,5 +974,3 @@
     </script>
 </body>
 </html>
-
-
