@@ -1,7 +1,7 @@
 /*
  * Repo2Text Ultra — parallel high-throughput extraction worker.
  * Decompresses multiple ZIP entries concurrently inside the worker while
- * keeping bounded memory pressure and lightweight progress reporting.
+ * keeping bounded memory pressure and chunked message transport.
  */
 /* eslint-disable no-undef */
 'use strict';
@@ -16,19 +16,39 @@ try { importScripts('../vendor/fflate.min.js'); HAS_FFLATE = typeof fflate !== '
 
 var S = (self.R2T && self.R2T.shared) || {};
 var CPU = (typeof navigator !== 'undefined' && navigator.hardwareConcurrency) || 4;
-var ZIP_CONCURRENCY = Math.max(2, Math.min(6, CPU - 1));
-var CURRENT_EVERY = 16;
-var YIELD_EVERY = 24;
-var state = { jobId: 0, cancelled: false, fatal: false, paused: false, pauseWait: null, options: {}, processed: 0, skipped: 0, bytes: 0, startedAt: 0, currentCount: 0, yieldCount: 0 };
+var DEVICE_MEMORY = (typeof navigator !== 'undefined' && Number(navigator.deviceMemory)) || 0;
+var ZIP_CONCURRENCY = CPU <= 2 ? 2 : CPU <= 4 ? 4 : CPU <= 6 ? 6 : 8;
+if (DEVICE_MEMORY && DEVICE_MEMORY <= 2) ZIP_CONCURRENCY = Math.min(ZIP_CONCURRENCY, 2);
+else if (DEVICE_MEMORY && DEVICE_MEMORY <= 4) ZIP_CONCURRENCY = Math.min(ZIP_CONCURRENCY, 4);
+ZIP_CONCURRENCY = Math.max(2, Math.min(8, ZIP_CONCURRENCY));
+var CURRENT_EVERY = 32;
+var YIELD_EVERY = 48;
+var FILE_BATCH_SIZE = 48;
+var FILE_BATCH_WAIT = 12;
+var state = { jobId: 0, cancelled: false, fatal: false, paused: false, pauseWait: null, options: {}, processed: 0, skipped: 0, bytes: 0, startedAt: 0, currentCount: 0, yieldCount: 0, fileBatch: [], fileBatchTimer: 0 };
 var pendingDecision = null;
 
 function resetState(jobId, options) {
+  if (state.fileBatchTimer) { clearTimeout(state.fileBatchTimer); state.fileBatchTimer = 0; }
+  state.fileBatch = [];
   state.jobId = jobId; state.cancelled = false; state.fatal = false; state.paused = false;
   state.pauseWait = null; state.options = options || {}; state.processed = 0; state.skipped = 0;
   state.bytes = 0; state.startedAt = Date.now(); state.currentCount = 0; state.yieldCount = 0;
 }
 function post(msg) { msg.jobId = state.jobId; self.postMessage(msg); }
-function postFatal(message) { state.fatal = true; post({ type: 'error', fatal: true, message: message }); }
+function flushFileBatch() {
+  if (state.fileBatchTimer) { clearTimeout(state.fileBatchTimer); state.fileBatchTimer = 0; }
+  if (!state.fileBatch.length) return;
+  var batch = state.fileBatch;
+  state.fileBatch = [];
+  post({ type: 'file-batch', files: batch });
+}
+function queueFile(msg) {
+  state.fileBatch.push(msg);
+  if (state.fileBatch.length >= FILE_BATCH_SIZE) flushFileBatch();
+  else if (!state.fileBatchTimer) state.fileBatchTimer = setTimeout(flushFileBatch, FILE_BATCH_WAIT);
+}
+function postFatal(message) { state.fatal = true; flushFileBatch(); post({ type: 'error', fatal: true, message: message }); }
 function CancelError() { this.name = 'CancelError'; this.message = 'cancelled'; }
 CancelError.prototype = Object.create(Error.prototype);
 function checkCancel() { if (state.cancelled) throw new CancelError(); }
@@ -66,7 +86,7 @@ async function processTextEntry(order, path, u8, extra) {
   if (decoded.binary) { state.skipped++; post({ type: 'skipped', path: clean, reason: 'bukan teks (binary)' }); return; }
   var text = decoded.text, bytes = u8.length;
   state.processed++; state.bytes += bytes;
-  post({ type: 'file', order: order, path: clean, text: text, lineCount: S.countLines(text), byteLength: bytes, encoding: decoded.encoding, nested: !!(extra && extra.depth) });
+  queueFile({ order: order, path: clean, text: text, lineCount: S.countLines(text), byteLength: bytes, encoding: decoded.encoding, nested: !!(extra && extra.depth) });
 }
 
 function buildFilesFromZipEntries(entries, prefix) {
@@ -244,16 +264,16 @@ async function extractArchiveBlob(blob, name, depth, orderBase) {
 
 self.onmessage = function (ev) {
   var msg = ev.data || {}; if (!msg || typeof msg !== 'object' || typeof msg.type !== 'string') return;
-  if (msg.type === 'cancel') { state.cancelled = true; if (state.pauseWait) { var p = state.pauseWait; state.pauseWait = null; p(); } if (pendingDecision) { var d = pendingDecision; pendingDecision = null; d(false); } return; }
+  if (msg.type === 'cancel') { state.cancelled = true; flushFileBatch(); if (state.pauseWait) { var p = state.pauseWait; state.pauseWait = null; p(); } if (pendingDecision) { var d = pendingDecision; pendingDecision = null; d(false); } return; }
   if (msg.type === 'pause') { state.paused = true; return; }
   if (msg.type === 'resume') { state.paused = false; if (state.pauseWait) { var r = state.pauseWait; state.pauseWait = null; r(); } return; }
   if (msg.type === 'decision-result') { if (pendingDecision) { var dec = pendingDecision; pendingDecision = null; dec(!!msg.proceed); } return; }
   (async function () {
     try {
-      if (msg.type === 'ping') { post({ type: 'ready', libs: { zipjs: HAS_ZIPJS, jszip: HAS_JSZIP, fflate: HAS_FFLATE }, concurrency: ZIP_CONCURRENCY }); return; }
-      if (msg.type === 'open-archive') { resetState(msg.jobId, msg.options || {}); post({ type: 'started', kind: 'archive', concurrency: ZIP_CONCURRENCY }); await extractArchiveBlob(msg.file, msg.name || (msg.file && msg.file.name) || 'archive.zip', 0, 0); if (state.fatal || state.cancelled) return; checkCancel(); post({ type: 'done', processed: state.processed, skipped: state.skipped, bytes: state.bytes, elapsed: Date.now() - state.startedAt, concurrency: ZIP_CONCURRENCY }); return; }
-      if (msg.type === 'process-bytes') { if (msg.jobId != null) state.jobId = msg.jobId; state.options = msg.options || state.options; state.cancelled = false; await processTextEntry(msg.order || 0, msg.path, msg.buffer ? new Uint8Array(msg.buffer) : (msg.text != null ? new TextEncoder().encode(msg.text) : new Uint8Array(0)), { depth: 0 }); post({ type: 'item-done', path: msg.path, order: msg.order }); }
-    } catch (err) { if (err instanceof CancelError || (err && err.name === 'CancelError')) { post({ type: 'cancelled' }); return; } postFatal(err && err.message ? err.message : String(err)); }
+      if (msg.type === 'ping') { post({ type: 'ready', libs: { zipjs: HAS_ZIPJS, jszip: HAS_JSZIP, fflate: HAS_FFLATE }, concurrency: ZIP_CONCURRENCY, batchSize: FILE_BATCH_SIZE }); return; }
+      if (msg.type === 'open-archive') { resetState(msg.jobId, msg.options || {}); post({ type: 'started', kind: 'archive', concurrency: ZIP_CONCURRENCY, batchSize: FILE_BATCH_SIZE }); await extractArchiveBlob(msg.file, msg.name || (msg.file && msg.file.name) || 'archive.zip', 0, 0); if (state.fatal || state.cancelled) return; checkCancel(); flushFileBatch(); post({ type: 'done', processed: state.processed, skipped: state.skipped, bytes: state.bytes, elapsed: Date.now() - state.startedAt, concurrency: ZIP_CONCURRENCY, batchSize: FILE_BATCH_SIZE }); return; }
+      if (msg.type === 'process-bytes') { if (msg.jobId != null) state.jobId = msg.jobId; state.options = msg.options || state.options; state.cancelled = false; await processTextEntry(msg.order || 0, msg.path, msg.buffer ? new Uint8Array(msg.buffer) : (msg.text != null ? new TextEncoder().encode(msg.text) : new Uint8Array(0)), { depth: 0 }); flushFileBatch(); post({ type: 'item-done', path: msg.path, order: msg.order }); }
+    } catch (err) { if (err instanceof CancelError || (err && err.name === 'CancelError')) { flushFileBatch(); post({ type: 'cancelled' }); return; } postFatal(err && err.message ? err.message : String(err)); }
   })();
 };
-self.postMessage({ type: 'boot', libs: { zipjs: HAS_ZIPJS, jszip: HAS_JSZIP, fflate: HAS_FFLATE }, concurrency: ZIP_CONCURRENCY });
+self.postMessage({ type: 'boot', libs: { zipjs: HAS_ZIPJS, jszip: HAS_JSZIP, fflate: HAS_FFLATE }, concurrency: ZIP_CONCURRENCY, batchSize: FILE_BATCH_SIZE });
