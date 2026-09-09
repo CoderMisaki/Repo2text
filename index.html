@@ -436,6 +436,19 @@
         ];
 
         const EXCLUDED_DIRS = ['.git/', '__macosx/', '.idea/', '.vscode/'];
+        const MAX_FILE_SIZE = 5 * 1024 * 1024;
+        const MAX_TOTAL_SIZE = 20 * 1024 * 1024;
+        const ZIP_CONCURRENCY = 4;
+        const RENDER_CHUNK_CHARS = 1500000;
+        const formatBytes = (bytes) => bytes >= 1048576 ? (bytes / 1048576).toFixed(1) + ' MB' : (bytes / 1024).toFixed(1) + ' KB';
+        const countLines = (text) => {
+            let lines = 1;
+            for (let i = 0; i < text.length; i++) {
+                if (text.charCodeAt(i) === 10) lines++;
+            }
+            return lines;
+        };
+        const yieldToUI = () => new Promise(resolve => setTimeout(resolve, 0));
         let rawCodeOnly = "";
         let fullOutputText = "";
         let currentSourceName = "code";
@@ -636,31 +649,35 @@
             const progressPercent = document.getElementById('progressPercent');
             const statusTitle = document.getElementById('statusTitle');
             const statusText = document.getElementById('statusText');
+            const resultEl = document.getElementById('resultText');
 
             outputContainer.style.display = 'none';
             statusContainer.style.display = 'block';
-            statusTitle.textContent = 'Membaca ZIP...';
+            statusTitle.textContent = 'Menganalisis file ZIP...';
             statusText.textContent = file.name;
             progressBar.style.width = '0%';
             progressPercent.textContent = '0%';
-            
+            resultEl.textContent = '';
+
             rawCodeOnly = "";
             fullOutputText = "";
             currentSourceName = file.name.replace(/\.zip$/i, '');
+            let lastProgressUpdate = 0;
 
             try {
                 const zip = new JSZip();
                 const loadedZip = await zip.loadAsync(file);
-                
-                // Ambil semua entri file dan sortir secara alfabetis path-nya
+                await yieldToUI();
+
                 let validEntries = [];
                 loadedZip.forEach((relativePath, zipEntry) => {
                     if (!zipEntry.dir && isIncluded(relativePath)) {
                         validEntries.push({ path: relativePath, entry: zipEntry });
                     }
                 });
+                await yieldToUI();
 
-                validEntries.sort((a, b) => a.path.localeCompare(b.path));
+                validEntries.sort((a, b) => a.path < b.path ? -1 : a.path > b.path ? 1 : 0);
 
                 const total = validEntries.length;
                 if (total === 0) {
@@ -668,52 +685,140 @@
                 }
 
                 document.getElementById('fileCountBadge').textContent = total;
-                statusTitle.textContent = 'Mengekstrak Konten...';
+                statusTitle.textContent = 'Mengekstrak konten...';
 
-                let displayArray = [];
-                let rawArray = [];
-
+                let header = `/**\n * 📦 ARCHIVE SOURCE CODE\n * File:     ${file.name}\n * Total:    ${total} File\n */\n\n`;
+                header += `// --- DAFTAR ISI ---\n`;
                 for (let i = 0; i < total; i++) {
-                    const item = validEntries[i];
-                    statusText.textContent = item.path;
+                    header += `// [${String(i + 1).padStart(3, '0')}] ${validEntries[i].path}\n`;
+                }
+                header += `// ------------------\n\n`;
 
-                    // Baca file sebagai teks UTF-8 murni
-                    const text = await item.entry.async("string");
+                const displayChunks = new Array(total);
+                const rawChunks = new Array(total);
+                const skippedFiles = [];
+                let processedCount = 0;
+                let totalBytes = 0;
+                let totalLines = 0;
+                let stopProcessing = false;
+                let nextIndex = 0;
 
-                    let block = `\n// ` + `─`.repeat(76) + `\n`;
-                    block += `// 📄 PATH: ${item.path}\n`;
-                    block += `// ` + `─`.repeat(76) + `\n\n`;
-                    block += text + `\n`;
-                    displayArray.push(block);
-
-                    rawArray.push(text + `\n\n`);
-
-                    let pct = Math.round(((i + 1) / total) * 100);
+                const updateProgress = (pathText, force) => {
+                    if (!force && Date.now() - lastProgressUpdate < 80) return;
+                    lastProgressUpdate = Date.now();
+                    const pct = Math.round((processedCount / total) * 100);
                     progressBar.style.width = `${pct}%`;
                     progressPercent.textContent = `${pct}%`;
+                    if (pathText) statusText.textContent = pathText;
+                };
+
+                const extractWorker = async () => {
+                    while (!stopProcessing) {
+                        const idx = nextIndex++;
+                        if (idx >= total) break;
+
+                        const item = validEntries[idx];
+                        const entryData = item.entry && item.entry._data;
+                        const rawSize = entryData ? entryData.uncompressedSize : 0;
+
+                        if (rawSize > MAX_FILE_SIZE) {
+                            skippedFiles.push(`${item.path} (${formatBytes(rawSize)})`);
+                            processedCount++;
+                            updateProgress(`Melewati ${item.path}...`);
+                            continue;
+                        }
+
+                        try {
+                            const text = await item.entry.async("string");
+                            if (stopProcessing) break;
+
+                            const fileBytes = rawSize || Math.min(text.length * 2, MAX_FILE_SIZE);
+                            if (totalBytes + fileBytes > MAX_TOTAL_SIZE) {
+                                skippedFiles.push(`${item.path} (batas total output ${formatBytes(MAX_TOTAL_SIZE)} tercapai)`);
+                                stopProcessing = true;
+                                processedCount++;
+                                updateProgress('Mencapai batas output...', true);
+                                break;
+                            }
+
+                            totalBytes += fileBytes;
+                            totalLines += countLines(text);
+
+                            let block = `\n// ` + `─`.repeat(76) + `\n`;
+                            block += `// 📄 PATH: ${item.path}\n`;
+                            block += `// ` + `─`.repeat(76) + `\n\n`;
+                            block += text + `\n`;
+
+                            displayChunks[idx] = block;
+                            rawChunks[idx] = text + `\n\n`;
+                            processedCount++;
+                            updateProgress(item.path);
+
+                            if (processedCount % 16 === 0) await yieldToUI();
+                        } catch (fileErr) {
+                            skippedFiles.push(`${item.path} (gagal dibaca)`);
+                            processedCount++;
+                            updateProgress(item.path);
+                        }
+                    }
+                };
+
+                const workers = [];
+                for (let i = 0; i < Math.min(ZIP_CONCURRENCY, total); i++) {
+                    workers.push(extractWorker());
+                }
+                await Promise.all(workers);
+                await yieldToUI();
+
+                const orderedDisplay = [header];
+                const orderedRaw = [];
+                for (let i = 0; i < total; i++) {
+                    if (displayChunks[i] !== undefined) {
+                        orderedDisplay.push(displayChunks[i]);
+                        orderedRaw.push(rawChunks[i]);
+                    }
                 }
 
-                let finalDisplay = `/**\n * 📦 ARCHIVE SOURCE CODE\n * File:     ${file.name}\n * Total:    ${total} File\n */\n\n`;
-                finalDisplay += `// --- DAFTAR ISI ---\n`;
-                validEntries.forEach((f, idx) => {
-                    finalDisplay += `// [${(idx + 1).toString().padStart(3, '0')}] ${f.path}\n`;
-                });
-                finalDisplay += `// ------------------\n\n`;
-                finalDisplay += displayArray.join('');
+                if (skippedFiles.length > 0) {
+                    let note = `\n// ⚠️ ${skippedFiles.length} file dilewati (terlalu besar / gagal dibaca / batas output):\n`;
+                    skippedFiles.forEach(s => { note += `// - ${s}\n`; });
+                    orderedDisplay.push(note);
+                }
 
-                rawCodeOnly = rawArray.join('');
-                fullOutputText = finalDisplay;
+                statusTitle.textContent = 'Menyiapkan tampilan...';
+                statusText.textContent = 'Merender hasil secara bertahap agar tetap mulus...';
+                progressBar.style.width = '100%';
+                progressPercent.textContent = '100%';
 
-                document.getElementById('resultText').textContent = finalDisplay;
-                
-                const lines = rawCodeOnly.split('\n').length;
-                const sizeKb = (new Blob([rawCodeOnly]).size / 1024).toFixed(1);
-                document.getElementById('lineCount').textContent = `${lines.toLocaleString()} baris`;
+                resultEl.textContent = '';
+                let chunkStart = 0;
+                let batchChars = 0;
+
+                for (let i = 0; i < orderedDisplay.length; i++) {
+                    batchChars += orderedDisplay[i].length;
+                    if (batchChars >= RENDER_CHUNK_CHARS || i === orderedDisplay.length - 1) {
+                        const fragment = document.createDocumentFragment();
+                        for (let j = chunkStart; j <= i; j++) {
+                            fragment.appendChild(document.createTextNode(orderedDisplay[j]));
+                        }
+                        resultEl.appendChild(fragment);
+                        chunkStart = i + 1;
+                        batchChars = 0;
+                        await yieldToUI();
+                    }
+                }
+
+                rawCodeOnly = orderedRaw.join('');
+                fullOutputText = orderedDisplay.join('');
+
+                const sizeKb = (totalBytes / 1024).toFixed(1);
+                document.getElementById('lineCount').textContent = `${totalLines.toLocaleString()} baris`;
                 document.getElementById('sizeCount').textContent = `${sizeKb} KB`;
 
                 statusContainer.style.display = 'none';
                 outputContainer.style.display = 'block';
-                showToast('Ekstraksi ZIP Selesai!');
+                scrollArea.scrollTop = 0;
+                showToast(skippedFiles.length > 0 ? 'Ekstraksi selesai (beberapa file dilewati)' : 'Ekstraksi ZIP Selesai!');
 
             } catch (err) {
                 alert('Gagal mengekstrak ZIP: ' + err.message);
