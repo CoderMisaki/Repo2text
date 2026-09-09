@@ -1,0 +1,5 @@
+Third-party libraries (client-side only):
+
+- JSZip v3.10.1 — MIT — https://github.com/Stuk/jszip
+- zip.js v2.7.62 (inflate, no nested workers) — BSD-3-Clause — https://github.com/gildas-lormeau/zip.js
+- fflate v0.8.2 — MIT — https://github.com/101arrowz/fflate
