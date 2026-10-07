@@ -8,6 +8,7 @@
 var HAS_ZIPJS = false;
 var HAS_JSZIP = false;
 var HAS_FFLATE = false;
+var HAS_UNRAR = false;
 
 try {
   importScripts('./shared.js');
@@ -30,6 +31,11 @@ try {
   importScripts('../vendor/fflate.min.js');
   HAS_FFLATE = typeof fflate !== 'undefined';
 } catch (e) { HAS_FFLATE = false; }
+
+try {
+  importScripts('../vendor/unrar-js.min.js');
+  HAS_UNRAR = typeof NodeUnrarJS !== 'undefined' && !!NodeUnrarJS.createExtractorFromData;
+} catch (e) { HAS_UNRAR = false; }
 
 var S = (self.R2T && self.R2T.shared) || {};
 
@@ -396,6 +402,203 @@ async function extractTarU8(u8, prefix, depth, orderBase, compressedSize) {
   }
 }
 
+var unrarWasmBinary = null;
+
+function base64ToArrayBuffer(b64) {
+  var bin = atob(b64.replace(/\s+/g, ''));
+  var len = bin.length;
+  var u8 = new Uint8Array(len);
+  var CHUNK = 8192;
+  for (var off = 0; off < len; off += CHUNK) {
+    var end = Math.min(off + CHUNK, len);
+    for (var i = off; i < end; i++) u8[i] = bin.charCodeAt(i);
+  }
+  return u8.buffer;
+}
+
+async function getUnrarWasmBinary() {
+  if (unrarWasmBinary) return unrarWasmBinary;
+  var res;
+  try {
+    res = await fetch('../vendor/unrar.wasm.b64');
+  } catch (err) {
+    throw new Error('Decoder RAR tidak dapat dimuat (vendor/unrar.wasm.b64): ' + (err && err.message ? err.message : String(err)));
+  }
+  if (!res || !res.ok) throw new Error('Decoder RAR tidak dapat dimuat: vendor/unrar.wasm.b64 tidak ditemukan.');
+  var b64 = await res.text();
+  try {
+    unrarWasmBinary = base64ToArrayBuffer(b64);
+  } catch (err) {
+    throw new Error('Decoder RAR rusak (base64 tidak valid).');
+  }
+  return unrarWasmBinary;
+}
+
+function unrarErrMessage(err) {
+  return err && err.message ? err.message : String(err);
+}
+
+function isUnrarPasswordError(err) {
+  return !!err && (err.reason === 'ERAR_MISSING_PASSWORD' || err.reason === 'ERAR_BAD_PASSWORD');
+}
+
+function sortArchiveFiles(files) {
+  files.sort(function (a, b) {
+    var sa = S.priorityScore(a.path, a.size);
+    var sb = S.priorityScore(b.path, b.size);
+    if (sa !== sb) return sa - sb;
+    return a.path < b.path ? -1 : a.path > b.path ? 1 : 0;
+  });
+}
+
+async function extractRarU8(u8, prefix, depth, orderBase, compressedSize) {
+  if (!HAS_UNRAR) throw new Error('Library RAR (unrar) tidak tersedia di worker.');
+  var wasmBinary = await getUnrarWasmBinary();
+  var buf = u8.buffer.slice(u8.byteOffset, u8.byteOffset + u8.byteLength);
+  var extractor;
+  try {
+    extractor = await NodeUnrarJS.createExtractorFromData({ wasmBinary: wasmBinary, data: buf });
+  } catch (err) {
+    throw new Error('RAR rusak atau tidak dapat dibaca: ' + unrarErrMessage(err));
+  }
+
+  var headers;
+  try {
+    var list = extractor.getFileList();
+    if (list.arcHeader.flags.volume) {
+      throw new Error('RAR multi-volume: butuh semua volume, tidak dapat diekstrak dari satu file.');
+    }
+    headers = [];
+    var fhIter = list.fileHeaders;
+    for (var h of fhIter) {
+      headers.push({
+        name: h.name,
+        directory: !!(h.flags && h.flags.directory),
+        encrypted: !!(h.flags && h.flags.encrypted),
+        uncompressedSize: h.unpSize || 0
+      });
+    }
+  } catch (err) {
+    if (isUnrarPasswordError(err)) {
+      if (depth === 0) {
+        postFatal('RAR terenkripsi (butuh password) — tidak dapat diproses di browser ini.');
+      } else {
+        state.skipped++;
+        post({ type: 'skipped', path: prefix || 'archive.rar', reason: 'RAR terenkripsi' });
+      }
+      return;
+    }
+    if (err && err.message && err.message.indexOf('multi-volume') !== -1) throw err;
+    throw new Error('RAR rusak atau tidak dapat dibaca: ' + unrarErrMessage(err));
+  }
+
+  if (depth === 0) {
+    var bomb = S.analyzeArchiveMeta(headers.map(function (e) {
+      return { uncompressedSize: e.uncompressedSize, directory: e.directory };
+    }), compressedSize || u8.length);
+    post({ type: 'meta', bomb: bomb, entryCount: headers.length, compressedTotal: compressedSize || u8.length, format: 'rar' });
+    if (bomb.level === 'block') {
+      postFatal(bomb.reason);
+      return;
+    }
+    if (bomb.level === 'warn') {
+      var proceed = await waitForDecision('suspicious', bomb);
+      if (!proceed) {
+        postFatal('Dibatalkan: arsip mencurigakan.');
+        return;
+      }
+    }
+  }
+
+  var files = [];
+  for (var i = 0; i < headers.length; i++) {
+    var e = headers[i];
+    if (e.directory) continue;
+    var p = (prefix ? prefix.replace(/\/?$/, '/') : '') + e.name;
+    var clean0 = S.sanitizePath(p);
+    if (!S.isIncluded(clean0, state.options) && !S.isArchivePath(clean0)) continue;
+    files.push({ path: p, rel: S.sanitizePath(e.name), header: e, size: e.uncompressedSize });
+  }
+  sortArchiveFiles(files);
+  var pathOrder = files.map(function (f) { return S.sanitizePath(f.path); }).sort();
+  var orderMap = {};
+  var fileIndex = {};
+  for (var o = 0; o < pathOrder.length; o++) orderMap[pathOrder[o]] = (orderBase || 0) + o;
+  for (var fi = 0; fi < files.length; fi++) fileIndex[S.sanitizePath(files[fi].path)] = fi;
+  if (depth === 0) post({ type: 'plan', total: files.length, paths: pathOrder });
+
+  var prefixSlash = prefix ? prefix.replace(/\/?$/, '/') : '';
+  var wanted = {};
+  var wantedCount = 0;
+  for (var w = 0; w < files.length; w++) {
+    var fw = files[w];
+    var cleanw = S.sanitizePath(fw.path);
+    if (fw.header.encrypted) {
+      state.skipped++;
+      post({ type: 'skipped', path: cleanw, reason: 'RAR terenkripsi' });
+      continue;
+    }
+    wanted[fw.rel] = true;
+    wantedCount++;
+  }
+  if (!wantedCount) return;
+
+  var extracted;
+  try {
+    extracted = extractor.extract({
+      files: function (fh) { return !!wanted[S.sanitizePath(fh.name)]; }
+    });
+  } catch (err) {
+    throw new Error('Gagal mengekstrak RAR: ' + unrarErrMessage(err));
+  }
+
+  var iter = extracted.files[Symbol.iterator]();
+  while (true) {
+    checkCancel();
+    await waitIfPaused();
+    var step;
+    try {
+      step = iter.next();
+    } catch (err) {
+      if (err instanceof CancelError) throw err;
+      state.skipped++;
+      post({ type: 'skipped', path: prefix || 'archive.rar', reason: 'entri rusak: ' + unrarErrMessage(err) });
+      break;
+    }
+    if (step.done) break;
+    var arcFile = step.value;
+    var fh2 = arcFile.fileHeader;
+    var clean = S.sanitizePath(prefixSlash + fh2.name);
+    var k = fileIndex[clean] != null ? fileIndex[clean] : 0;
+    post({ type: 'current', path: clean, index: k, total: files.length });
+    if (fh2.flags && fh2.flags.encrypted) {
+      state.skipped++;
+      post({ type: 'skipped', path: clean, reason: 'RAR terenkripsi' });
+      continue;
+    }
+    if (!S.isIncluded(clean, state.options) && !S.isArchivePath(clean)) {
+      state.skipped++;
+      post({ type: 'skipped', path: clean, reason: 'difilter' });
+      continue;
+    }
+    var pressure = S.memoryPressure();
+    if (pressure > 0.88) {
+      postFatal('Resource exhaustion: memori browser hampir penuh (' + Math.round(pressure * 100) + '%). Proses dihentikan dengan aman.');
+      return;
+    }
+    try {
+      var data = arcFile.extraction;
+      var out = data instanceof Uint8Array ? data : new Uint8Array(data);
+      var order = orderMap[clean] != null ? orderMap[clean] : (orderBase || 0) + k;
+      await processTextEntry(order, clean, out, { depth: depth, orderBase: (orderBase || 0) + files.length });
+    } catch (err) {
+      if (err instanceof CancelError) throw err;
+      state.skipped++;
+      post({ type: 'skipped', path: clean, reason: 'gagal didekompresi: ' + unrarErrMessage(err) });
+    }
+  }
+}
+
 async function gunzipBlob(blob) {
   if (!HAS_FFLATE) throw new Error('Library GZIP (fflate) tidak tersedia di worker.');
   var CHUNK = 1024 * 1024;
@@ -458,14 +661,20 @@ async function extractArchiveBlob(blob, name, depth, orderBase) {
   var format = S.detectFormat(name, magic);
   post({ type: 'format', format: format, name: name, depth: depth });
 
-  if (format === '7z' || format === 'rar' || format === 'unsupported') {
+  if (format === '7z' || format === 'unsupported') {
     if (depth === 0) {
-      postFatal('Format ' + String(format).toUpperCase() + ' tidak dapat diproses di browser ini (tidak ada decoder client-side yang aman). Gunakan ZIP, TAR, atau TAR.GZ.'
+      postFatal('Format ' + String(format).toUpperCase() + ' tidak dapat diproses di browser ini (tidak ada decoder client-side yang aman). Gunakan ZIP, TAR, TAR.GZ, atau RAR.'
       );
     } else {
       state.skipped++;
       post({ type: 'skipped', path: name, reason: 'format ' + format + ' tidak didukung' });
     }
+    return;
+  }
+
+  if (format === 'rar') {
+    var rarU8 = new Uint8Array(await blob.arrayBuffer());
+    await extractRarU8(rarU8, depth > 0 ? name.replace(/\.rar$/i, '') : '', depth, orderBase, blob.size);
     return;
   }
 
@@ -513,7 +722,7 @@ async function extractArchiveBlob(blob, name, depth, orderBase) {
       await processTextEntry(orderBase, name, new TextEncoder().encode(asText.text), { depth: depth });
       return;
     }
-    postFatal('Format arsip tidak dikenali. Dukung: ZIP, TAR, TAR.GZ / TGZ, GZ.'
+    postFatal('Format arsip tidak dikenali. Dukung: ZIP, TAR, TAR.GZ / TGZ, GZ, RAR.'
     );
   }
 }
@@ -567,7 +776,7 @@ self.onmessage = function (ev) {
       if (msg.type === 'ping') {
         post({
           type: 'ready',
-          libs: { zipjs: HAS_ZIPJS, jszip: HAS_JSZIP, fflate: HAS_FFLATE }
+          libs: { zipjs: HAS_ZIPJS, jszip: HAS_JSZIP, fflate: HAS_FFLATE, unrar: HAS_UNRAR }
         });
         return;
       }
@@ -606,5 +815,5 @@ self.onmessage = function (ev) {
 
 self.postMessage({
   type: 'boot',
-  libs: { zipjs: HAS_ZIPJS, jszip: HAS_JSZIP, fflate: HAS_FFLATE }
+  libs: { zipjs: HAS_ZIPJS, jszip: HAS_JSZIP, fflate: HAS_FFLATE, unrar: HAS_UNRAR }
 });

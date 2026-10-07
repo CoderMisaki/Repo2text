@@ -13,7 +13,7 @@ Then visit `http://localhost:8080`.
 ## Features
 
 - GitHub & Codeberg URL extraction (branch-aware)
-- ZIP / TAR / TAR.GZ / TGZ / GZ (7z & RAR are detected and rejected clearly)
+- ZIP / TAR / TAR.GZ / TGZ / GZ / RAR (7z is detected and rejected clearly)
 - Drag & drop, progress, cancel (`✕ Batalkan`)
 - History of repository URLs only (not source)
 - Copy all / copy pure code / save `.txt`

@@ -783,8 +783,8 @@
   async function processArchiveFile(file) {
     var name = file && file.name ? file.name : 'archive';
     var lower = name.toLowerCase();
-    if (/\.(7z|rar|bz2|xz)$/.test(lower) && !/\.tar\.gz$/.test(lower)) {
-      alert('Format ' + lower.replace(/^.*\./, '').toUpperCase() + ' tidak dapat diproses di browser ini. Gunakan ZIP, TAR, atau TAR.GZ.');
+    if (/\.(7z|bz2|xz)$/.test(lower) && !/\.tar\.gz$/.test(lower)) {
+      alert('Format ' + lower.replace(/^.*\./, '').toUpperCase() + ' tidak dapat diproses di browser ini. Gunakan ZIP, TAR, TAR.GZ, atau RAR.');
       return;
     }
     currentSourceName = S.safeFilename(name.replace(/\.(zip|tar|tgz|gz)$/i, '').replace(/\.tar$/i, '') || 'archive');

@@ -3,3 +3,10 @@ Third-party libraries (client-side only):
 - JSZip v3.10.1 — MIT — https://github.com/Stuk/jszip
 - zip.js v2.7.62 (inflate, no nested workers) — BSD-3-Clause — https://github.com/gildas-lormeau/zip.js
 - fflate v0.8.2 — MIT — https://github.com/101arrowz/fflate
+
+- node-unrar-js v2.0.2 — MIT — https://github.com/YuJianrong/node-unrar.js
+  (bundled to vendor/unrar-js.min.js as IIFE global `NodeUnrarJS`; wasm at
+  vendor/unrar.wasm). Embeds the official RARLAB unrar source compiled with
+  Emscripten. unrar is free software for handling RAR archives; per the unrar
+  license the RAR compression algorithm may not be recreated/reverse-engineered
+  from it — this build only decompresses.
